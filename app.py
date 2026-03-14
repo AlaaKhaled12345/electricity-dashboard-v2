@@ -32,7 +32,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-COLOR_MAP = {'كشك': '#2980b9', 'غرفة': '#c0392b', 'معلق': '#f1c40f', 'هوائي': '#8e44ad', 'أخرى': '#7f8c8d'}
+COLOR_MAP = {'كشك': '#2980b9', 'غرفة': '#c0392b', 'معلق': '#f1c40f', 'هوائي': '#8e44ad', 'أخرى': '#7f8c8d', 'غير محدد': '#bdc3c7'}
 
 # ==========================================
 # 2. دوال المعالجة والتحميل (Backend Logic)
@@ -51,6 +51,24 @@ def metric_card(title, value, subtitle="", style_class=""):
         <div class="metric-sub">{subtitle}</div>
     </div>
     """, unsafe_allow_html=True)
+
+# --- دالة الرسم الآمنة لتجنب انهيار التطبيق ---
+def render_safe_sunburst(df, path_cols, **kwargs):
+    df_clean = df.copy()
+    # تنظيف صارم للنصوص لمنع مشاكل Plotly
+    for col in path_cols:
+        df_clean[col] = df_clean[col].astype(str).replace(['nan', 'None', 'NaN', 'NaT', ''], 'غير محدد')
+        df_clean[col] = df_clean[col].apply(lambda x: 'غير محدد' if not x.strip() else x.strip())
+        
+    try:
+        fig = px.sunburst(df_clean, path=path_cols, **kwargs)
+        # تعديل الهوامش للرسومات الصغيرة
+        if 'height' in kwargs and kwargs['height'] <= 400:
+            fig.update_layout(margin=dict(t=0, l=0, r=0, b=0))
+        st.plotly_chart(fig, use_container_width=True)
+    except Exception as e:
+        # إذا فشل الرسم، لا نوقف التطبيق، بل نعرض رسالة خطأ صغيرة
+        st.warning("⚠️ لا يمكن عرض المخطط الهرمي لهذه البيانات المحددة بسبب تداخل في المسميات.")
 
 @st.cache_data
 def load_stations():
@@ -72,9 +90,6 @@ def load_distributors():
         df.columns = ['القطاع', 'الهندسة', 'مسلسل', 'الموزع']
         df = df.ffill()
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
-        # تأمين عدم تكرار الأسماء
-        df['الهندسة'] = df['الهندسة'].astype(str) + " (هندسة)"
-        df['الموزع'] = df['الموزع'].astype(str) + " (موزع)"
         
         eng_counts = df.groupby('القطاع')['الهندسة'].nunique()
         df['قطاع_للرسم'] = df['القطاع'].apply(lambda x: f"{x} (هندسات: {eng_counts.get(x, 0)})")
@@ -95,17 +110,16 @@ def load_all_transformers():
         if 'نوع المبني' in df.columns:
             df['النوع'] = df['نوع المبني'].astype(str).str.strip()
         else:
-            df['النوع'] = 'نوع غير محدد'
+            df['النوع'] = 'غير محدد'
             
         df['النوع'] = df['النوع'].apply(lambda x: 'معلق' if 'معلق' in x or 'هوائي' in x else ('كشك' if 'كشك' in x else ('غرفة' if 'غرف' in x else 'أخرى')))
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
-        df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'ملكية غير محددة'))
+        df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'غير محدد'))
         
         if 'الهندسة' not in df.columns:
             df['الهندسة'] = 'هندسة غير محددة'
         else:
-            # إضافة كلمة هندسة لتجنب أي تشابه في الأسماء مع القطاعات
-            df['الهندسة'] = df['الهندسة'].fillna('هندسة غير محددة').astype(str).apply(lambda x: f"هندسة {x}" if "هندسة" not in x else x)
+            df['الهندسة'] = df['الهندسة'].fillna('هندسة غير محددة').astype(str)
             
         if 'القدرة' not in df.columns:
             df['القدرة'] = 0.0
@@ -177,14 +191,14 @@ with tab_home:
     st.markdown("### 📈 الرسوم التوضيحية المجمعة")
     row3_c1, row3_c2, row3_c3 = st.columns(3)
     with row3_c1:
-        if df_st is not None: st.plotly_chart(px.sunburst(df_st, path=['القطاع', 'المحطة'], title="المحطات العامة"), use_container_width=True)
+        if df_st is not None: 
+            render_safe_sunburst(df_st, ['القطاع', 'المحطة'], title="المحطات العامة")
     with row3_c2:
-        if df_dst is not None: st.plotly_chart(px.sunburst(df_dst, path=['القطاع', 'الهندسة'], title="الموزعات"), use_container_width=True)
+        if df_dst is not None: 
+            render_safe_sunburst(df_dst, ['القطاع', 'الهندسة'], title="الموزعات")
     with row3_c3:
         if not df_trans.empty: 
-            # تم التأمين بأسماء مميزة لتفادي Crash الـ Sunburst
-            df_trans_clean = df_trans.fillna({'الملكية': 'ملكية غير محددة', 'النوع': 'نوع غير محدد'})
-            st.plotly_chart(px.sunburst(df_trans_clean, path=['الملكية', 'النوع'], title="المحولات", color='النوع', color_discrete_map=COLOR_MAP), use_container_width=True)
+            render_safe_sunburst(df_trans, ['الملكية', 'النوع'], title="المحولات", color='النوع', color_discrete_map=COLOR_MAP)
 
 # -----------------------------------------------------------------------------
 # TAB 2 & 3 & 4
@@ -195,7 +209,8 @@ with tab_sector_details:
 with tab_stations:
     if df_st is not None:
         cs1, cs2 = st.columns([3, 1])
-        with cs1: st.plotly_chart(px.sunburst(df_st, path=['القطاع', 'المحطة'], values='العدد', height=700), use_container_width=True)
+        with cs1: 
+            render_safe_sunburst(df_st, ['القطاع', 'المحطة'], values='العدد', height=700)
         with cs2:
             cnt_sec = df_st['القطاع'].value_counts().reset_index()
             cnt_sec.columns = ['القطاع', 'العدد']
@@ -205,7 +220,8 @@ with tab_stations:
 with tab_dist:
     if df_dst is not None:
         cd1, cd2 = st.columns([1, 2])
-        with cd1: st.plotly_chart(px.sunburst(df_dst, path=['قطاع_للرسم', 'الهندسة', 'الموزع'], color='القطاع', height=700), use_container_width=True)
+        with cd1: 
+            render_safe_sunburst(df_dst, ['قطاع_للرسم', 'الهندسة', 'الموزع'], color='القطاع', height=700)
         with cd2:
             cnt_dst = df_dst.groupby(['القطاع', 'الهندسة']).size().reset_index(name='العدد').sort_values('العدد', ascending=False)
             fig_d_bar = px.bar(cnt_dst, x='الهندسة', y='العدد', color='القطاع', text='العدد')
@@ -250,11 +266,9 @@ with tab_all_trans:
                 
             with col_charts:
                 st.markdown("<div class='table-header'>📊 تحليل مرئي للقطاع</div>", unsafe_allow_html=True)
-                # تم التأمين بأسماء مميزة لتفادي Crash الـ Sunburst
-                df_view_clean = df_view.fillna({'الهندسة': 'هندسة غير محددة', 'الملكية': 'ملكية غير محددة', 'النوع': 'نوع غير محدد'})
-                fig_sun_dyn = px.sunburst(df_view_clean, path=['الهندسة', 'الملكية', 'النوع'], color='النوع', color_discrete_map=COLOR_MAP, height=350)
-                fig_sun_dyn.update_layout(margin=dict(t=0, l=0, r=0, b=0))
-                st.plotly_chart(fig_sun_dyn, use_container_width=True)
+                
+                # استخدام الدالة الآمنة للرسم (التي حلت مشكلة السطر 253)
+                render_safe_sunburst(df_view, ['الهندسة', 'الملكية', 'النوع'], color='النوع', color_discrete_map=COLOR_MAP, height=350)
                 
                 cnt_type_dyn = df_view['النوع'].value_counts().reset_index()
                 cnt_type_dyn.columns = ['النوع', 'العدد']
