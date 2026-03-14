@@ -138,9 +138,9 @@ df_st = load_stations()
 df_dst, df_dst_summ = load_distributors()
 df_trans = load_all_transformers()
 
-tab_home, tab_sector_details, tab_stations, tab_dist, tab_all_trans = st.tabs([
+# ----------------- التعديل هنا: مسحنا تاب القطاعات -----------------
+tab_home, tab_stations, tab_dist, tab_all_trans = st.tabs([
     "🏠 الرئيسية (Dashboard)", 
-    "🔍 تفاصيل القطاعات", 
     "🏭 المحطات العامة",
     "🔌 الموزعات (517)", 
     "⚡ المحولات الشاملة"
@@ -201,11 +201,8 @@ with tab_home:
             render_safe_sunburst(df_trans, ['الملكية', 'النوع'], title="المحولات", color='النوع', color_discrete_map=COLOR_MAP)
 
 # -----------------------------------------------------------------------------
-# TAB 2 & 3 & 4
+# TAB 2 & 3
 # -----------------------------------------------------------------------------
-with tab_sector_details:
-    st.info("تم نقل تفاصيل المحولات للتاب الأخير (المحولات الشاملة) بناء على التحديث الجديد.")
-
 with tab_stations:
     if df_st is not None:
         cs1, cs2 = st.columns([3, 1])
@@ -230,7 +227,7 @@ with tab_dist:
         st.dataframe(df_dst_summ, use_container_width=True)
 
 # -----------------------------------------------------------------------------
-# TAB 5: المحولات الشاملة (الديناميكية بالقطاع)
+# TAB 4: المحولات الشاملة (الديناميكية بالقطاع)
 # -----------------------------------------------------------------------------
 with tab_all_trans:
     if not df_trans.empty:
@@ -267,7 +264,6 @@ with tab_all_trans:
             with col_charts:
                 st.markdown("<div class='table-header'>📊 تحليل مرئي للقطاع</div>", unsafe_allow_html=True)
                 
-                # استخدام الدالة الآمنة للرسم (التي حلت مشكلة السطر 253)
                 render_safe_sunburst(df_view, ['الهندسة', 'الملكية', 'النوع'], color='النوع', color_discrete_map=COLOR_MAP, height=350)
                 
                 cnt_type_dyn = df_view['النوع'].value_counts().reset_index()
