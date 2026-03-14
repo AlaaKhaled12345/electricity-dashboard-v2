@@ -102,6 +102,12 @@ def load_all_transformers():
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
         df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'غير محدد'))
         
+        # التأكد من عدم وجود قيم فارغة في الهندسة لتجنب خطأ Plotly
+        if 'الهندسة' not in df.columns:
+            df['الهندسة'] = 'غير محدد'
+        else:
+            df['الهندسة'] = df['الهندسة'].fillna('غير محدد').astype(str)
+            
         # التأكد من وجود عمود القدرة، لو مش موجود نحط 0
         if 'القدرة' not in df.columns:
             df['القدرة'] = 0.0
@@ -179,10 +185,13 @@ with tab_home:
     with row3_c2:
         if df_dst is not None: st.plotly_chart(px.sunburst(df_dst, path=['القطاع', 'الهندسة'], title="الموزعات"), use_container_width=True)
     with row3_c3:
-        if not df_trans.empty: st.plotly_chart(px.sunburst(df_trans, path=['الملكية', 'النوع'], title="المحولات", color='النوع', color_discrete_map=COLOR_MAP), use_container_width=True)
+        if not df_trans.empty: 
+            # معالجة للـ Sunburst الرئيسية لتفادي الخطأ
+            df_trans_clean = df_trans.fillna({'الملكية': 'غير محدد', 'النوع': 'غير محدد'})
+            st.plotly_chart(px.sunburst(df_trans_clean, path=['الملكية', 'النوع'], title="المحولات", color='النوع', color_discrete_map=COLOR_MAP), use_container_width=True)
 
 # -----------------------------------------------------------------------------
-# TAB 2 & 3 & 4 (كما هي بدون تغيير جوهري، تم تعديل الأسماء فقط)
+# TAB 2 & 3 & 4
 # -----------------------------------------------------------------------------
 with tab_sector_details:
     st.info("تم نقل تفاصيل المحولات للتاب الأخير (المحولات الشاملة) بناء على التحديث الجديد.")
@@ -222,43 +231,47 @@ with tab_all_trans:
         # تطبيق الفلتر
         df_view = df_trans if selected_sec == "الكل" else df_trans[df_trans['القطاع'] == selected_sec]
         
-        # الكروت الديناميكية
-        num_engs = df_view['الهندسة'].nunique()
-        num_total_trans = len(df_view)
-        num_company = len(df_view[df_view['الملكية'] == 'ملك الشركة'])
-        num_private = len(df_view[df_view['الملكية'] == 'ملك الغير'])
-        
-        c_v1, c_v2, c_v3, c_v4 = st.columns(4)
-        with c_v1: metric_card("عدد الهندسات", num_engs, "هندسة بالقطاع")
-        with c_v2: metric_card("إجمالي المحولات", num_total_trans, "محول")
-        with c_v3: metric_card("ملك الشركة", num_company, "محول", "card-company")
-        with c_v4: metric_card("ملك الغير", num_private, "محول", "card-private")
-        
-        st.markdown("---")
-        
-        # عرض البيانات والرسومات
-        col_data, col_charts = st.columns([1.2, 1])
-        
-        with col_data:
-            st.markdown("<div class='table-header'>📋 تفاصيل المحولات (النوع والملكية)</div>", unsafe_allow_html=True)
-            # عمل Pivot Table يوضح الهندسة متقسمة لشركة/غير وأنواع
-            trans_grouped = df_view.groupby(['الهندسة', 'الملكية', 'النوع']).size().reset_index(name='العدد')
-            if not trans_grouped.empty:
-                pivot_trans = trans_grouped.pivot_table(index='الهندسة', columns=['الملكية', 'النوع'], values='العدد', fill_value=0).astype(int)
-                st.dataframe(pivot_trans, use_container_width=True, height=400)
+        if not df_view.empty:
+            # الكروت الديناميكية
+            num_engs = df_view['الهندسة'].nunique()
+            num_total_trans = len(df_view)
+            num_company = len(df_view[df_view['الملكية'] == 'ملك الشركة'])
+            num_private = len(df_view[df_view['الملكية'] == 'ملك الغير'])
             
-        with col_charts:
-            st.markdown("<div class='table-header'>📊 تحليل مرئي للقطاع</div>", unsafe_allow_html=True)
-            # رسمة Sunburst ديناميكية للقطاع المختار
-            fig_sun_dyn = px.sunburst(df_view, path=['الهندسة', 'الملكية', 'النوع'], color='النوع', color_discrete_map=COLOR_MAP, height=350)
-            fig_sun_dyn.update_layout(margin=dict(t=0, l=0, r=0, b=0))
-            st.plotly_chart(fig_sun_dyn, use_container_width=True)
+            c_v1, c_v2, c_v3, c_v4 = st.columns(4)
+            with c_v1: metric_card("عدد الهندسات", num_engs, "هندسة بالقطاع")
+            with c_v2: metric_card("إجمالي المحولات", num_total_trans, "محول")
+            with c_v3: metric_card("ملك الشركة", num_company, "محول", "card-company")
+            with c_v4: metric_card("ملك الغير", num_private, "محول", "card-private")
             
-            # رسمة Bar Chart لأنواع المحولات في القطاع المختار
-            cnt_type_dyn = df_view['النوع'].value_counts().reset_index()
-            cnt_type_dyn.columns = ['النوع', 'العدد']
-            fig_bar_dyn = px.bar(cnt_type_dyn, x='النوع', y='العدد', color='النوع', color_discrete_map=COLOR_MAP, text='العدد', height=300)
-            st.plotly_chart(fig_bar_dyn, use_container_width=True)
+            st.markdown("---")
+            
+            # عرض البيانات والرسومات
+            col_data, col_charts = st.columns([1.2, 1])
+            
+            with col_data:
+                st.markdown("<div class='table-header'>📋 تفاصيل المحولات (النوع والملكية)</div>", unsafe_allow_html=True)
+                # عمل Pivot Table يوضح الهندسة متقسمة لشركة/غير وأنواع
+                trans_grouped = df_view.groupby(['الهندسة', 'الملكية', 'النوع']).size().reset_index(name='العدد')
+                if not trans_grouped.empty:
+                    pivot_trans = trans_grouped.pivot_table(index='الهندسة', columns=['الملكية', 'النوع'], values='العدد', fill_value=0).astype(int)
+                    st.dataframe(pivot_trans, use_container_width=True, height=400)
+                
+            with col_charts:
+                st.markdown("<div class='table-header'>📊 تحليل مرئي للقطاع</div>", unsafe_allow_html=True)
+                # رسمة Sunburst ديناميكية للقطاع المختار (تم تأمينها لتفادي الخطأ)
+                df_view_clean = df_view.fillna({'الهندسة': 'غير محدد', 'الملكية': 'غير محدد', 'النوع': 'غير محدد'})
+                fig_sun_dyn = px.sunburst(df_view_clean, path=['الهندسة', 'الملكية', 'النوع'], color='النوع', color_discrete_map=COLOR_MAP, height=350)
+                fig_sun_dyn.update_layout(margin=dict(t=0, l=0, r=0, b=0))
+                st.plotly_chart(fig_sun_dyn, use_container_width=True)
+                
+                # رسمة Bar Chart لأنواع المحولات في القطاع المختار
+                cnt_type_dyn = df_view['النوع'].value_counts().reset_index()
+                cnt_type_dyn.columns = ['النوع', 'العدد']
+                fig_bar_dyn = px.bar(cnt_type_dyn, x='النوع', y='العدد', color='النوع', color_discrete_map=COLOR_MAP, text='العدد', height=300)
+                st.plotly_chart(fig_bar_dyn, use_container_width=True)
+        else:
+            st.info("لا توجد بيانات متاحة لهذا القطاع.")
             
     else:
         st.warning("⚠️ يرجى التأكد من رفع ملف 'Transformers_All.xlsx' لظهور بيانات المحولات.")
