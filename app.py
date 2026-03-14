@@ -124,6 +124,12 @@ def load_all_transformers():
         if 'القدرة' not in df.columns:
             df['القدرة'] = 0.0
             
+        # 🔥 التعديل هنا لتقليل استهلاك الـ RAM بشكل كبير 🔥
+        cols_to_category = ['القطاع', 'الهندسة', 'النوع', 'الملكية']
+        for col in cols_to_category:
+            if col in df.columns:
+                df[col] = df[col].astype('category')
+                
         return df
     except Exception as e:
         return pd.DataFrame()
