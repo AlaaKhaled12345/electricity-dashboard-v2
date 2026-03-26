@@ -88,7 +88,13 @@ def load_distributors():
     try:
         df = pd.read_excel(files[0]).iloc[:, [1, 2, 3, 4]]
         df.columns = ['القطاع', 'الهندسة', 'مسلسل', 'الموزع']
-        df = df.ffill()
+        
+        # التعديل: مسح الصفوف اللي مفيهاش موزع وإزالة صفوف الإجمالي
+        df = df.dropna(subset=['الموزع'])
+        df = df[~df['الموزع'].astype(str).str.contains('إجمالي|اجمالي|Total', na=False)]
+        
+        # ملء الفراغات للقطاع والهندسة فقط
+        df[['القطاع', 'الهندسة']] = df[['القطاع', 'الهندسة']].ffill()
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
         
         eng_counts = df.groupby('القطاع')['الهندسة'].nunique()
@@ -105,7 +111,19 @@ def load_all_transformers():
     
     try:
         all_sheets = pd.read_excel(file_name, sheet_name=None)
-        df = pd.concat(all_sheets.values(), ignore_index=True)
+        
+        # التعديل: استبعاد الشيتات المجمعة عشان منعدش مرتين
+        valid_dfs = []
+        for sheet_name, sheet_df in all_sheets.items():
+            if 'اجمالي' in sheet_name or 'summary' in sheet_name.lower() or 'ملخص' in sheet_name:
+                continue
+            valid_dfs.append(sheet_df)
+            
+        if not valid_dfs: return pd.DataFrame()
+        df = pd.concat(valid_dfs, ignore_index=True)
+        
+        # مسح الصفوف الفاضية الوهمية
+        df = df.dropna(subset=['القطاع'], how='all')
         
         if 'نوع المبني' in df.columns:
             df['النوع'] = df['نوع المبني'].astype(str).str.strip()
@@ -114,7 +132,21 @@ def load_all_transformers():
             
         df['النوع'] = df['النوع'].apply(lambda x: 'معلق' if 'معلق' in x or 'هوائي' in x else ('كشك' if 'كشك' in x else ('غرفة' if 'غرف' in x else 'أخرى')))
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
-        df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'غير محدد'))
+        
+        # التعديل: دالة دقيقة لفرز الملكية لشركة أو لغير
+        def get_ownership(x):
+            x_str = str(x).strip()
+            if x_str in ['nan', 'None', '', 'غير محدد']:
+                return 'غير محدد'
+            elif 'شركة' in x_str:
+                return 'ملك الشركة'
+            else:
+                return 'ملك الغير' 
+        
+        if 'الملكية' in df.columns:
+            df['الملكية'] = df['الملكية'].apply(get_ownership)
+        else:
+            df['الملكية'] = 'غير محدد'
         
         if 'الهندسة' not in df.columns:
             df['الهندسة'] = 'هندسة غير محددة'
@@ -124,7 +156,7 @@ def load_all_transformers():
         if 'القدرة' not in df.columns:
             df['القدرة'] = 0.0
             
-        # 🔥 التعديل هنا لتقليل استهلاك الـ RAM بشكل كبير 🔥
+        # توفير الـ RAM
         cols_to_category = ['القطاع', 'الهندسة', 'النوع', 'الملكية']
         for col in cols_to_category:
             if col in df.columns:
@@ -144,7 +176,6 @@ df_st = load_stations()
 df_dst, df_dst_summ = load_distributors()
 df_trans = load_all_transformers()
 
-# ----------------- التعديل هنا: مسحنا تاب القطاعات -----------------
 tab_home, tab_stations, tab_dist, tab_all_trans = st.tabs([
     "🏠 الرئيسية (Dashboard)", 
     "🏭 المحطات العامة",
