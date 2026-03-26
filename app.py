@@ -52,23 +52,30 @@ def metric_card(title, value, subtitle="", style_class=""):
     </div>
     """, unsafe_allow_html=True)
 
-# --- دالة الرسم الآمنة لتجنب انهيار التطبيق ---
+# --- دالة الرسم الآمنة (المعدلة لمنع الـ Crash نهائياً) ---
 def render_safe_sunburst(df, path_cols, **kwargs):
     df_clean = df.copy()
-    # تنظيف صارم للنصوص لمنع مشاكل Plotly
+    
+    # تنظيف النصوص
     for col in path_cols:
         df_clean[col] = df_clean[col].astype(str).replace(['nan', 'None', 'NaN', 'NaT', ''], 'غير محدد')
         df_clean[col] = df_clean[col].apply(lambda x: 'غير محدد' if not x.strip() else x.strip())
         
+    # تجميع البيانات (Grouping) قبل الرسم عشان نتجنب الـ ValueError بتاع Plotly
+    val_col = kwargs.get('values', None)
+    if val_col and val_col in df_clean.columns:
+        df_grouped = df_clean.groupby(path_cols)[val_col].sum().reset_index()
+    else:
+        df_grouped = df_clean.groupby(path_cols).size().reset_index(name='المجموع')
+        kwargs['values'] = 'المجموع'
+        
     try:
-        fig = px.sunburst(df_clean, path=path_cols, **kwargs)
-        # تعديل الهوامش للرسومات الصغيرة
+        fig = px.sunburst(df_grouped, path=path_cols, **kwargs)
         if 'height' in kwargs and kwargs['height'] <= 400:
             fig.update_layout(margin=dict(t=0, l=0, r=0, b=0))
         st.plotly_chart(fig, use_container_width=True)
     except Exception as e:
-        # إذا فشل الرسم، لا نوقف التطبيق، بل نعرض رسالة خطأ صغيرة
-        st.warning("⚠️ لا يمكن عرض المخطط الهرمي لهذه البيانات المحددة بسبب تداخل في المسميات.")
+        st.warning(f"⚠️ تعذر عرض الرسم البياني. السبب الفني: {e}")
 
 @st.cache_data
 def load_stations():
@@ -89,11 +96,11 @@ def load_distributors():
         df = pd.read_excel(files[0]).iloc[:, [1, 2, 3, 4]]
         df.columns = ['القطاع', 'الهندسة', 'مسلسل', 'الموزع']
         
-        # التعديل: مسح الصفوف اللي مفيهاش موزع وإزالة صفوف الإجمالي
         df = df.dropna(subset=['الموزع'])
-        df = df[~df['الموزع'].astype(str).str.contains('إجمالي|اجمالي|Total', na=False)]
+        # فلترة صارمة لكل أنواع الإجماليات
+        mask = df.astype(str).apply(lambda x: x.str.contains('إجمالي|اجمالي|إجمالى|اجمالى|Total|مجموع|الاجمالي', case=False, na=False)).any(axis=1)
+        df = df[~mask]
         
-        # ملء الفراغات للقطاع والهندسة فقط
         df[['القطاع', 'الهندسة']] = df[['القطاع', 'الهندسة']].ffill()
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
         
@@ -112,39 +119,44 @@ def load_all_transformers():
     try:
         all_sheets = pd.read_excel(file_name, sheet_name=None)
         
-        # التعديل: استبعاد الشيتات المجمعة عشان منعدش مرتين
         valid_dfs = []
         for sheet_name, sheet_df in all_sheets.items():
-            if 'اجمالي' in sheet_name or 'summary' in sheet_name.lower() or 'ملخص' in sheet_name:
+            # فلترة أسماء الشيتات المجمعة
+            if any(word in sheet_name.lower() for word in ['اجمالي', 'إجمالي', 'اجمالى', 'إجمالى', 'summary', 'ملخص', 'مجمع', 'total']):
                 continue
+            sheet_df.columns = sheet_df.columns.astype(str).str.strip()
             valid_dfs.append(sheet_df)
             
         if not valid_dfs: return pd.DataFrame()
         df = pd.concat(valid_dfs, ignore_index=True)
         
-        # مسح الصفوف الفاضية الوهمية
         df = df.dropna(subset=['القطاع'], how='all')
         
-        if 'نوع المبني' in df.columns:
-            df['النوع'] = df['نوع المبني'].astype(str).str.strip()
+        # فلترة صفوف الإجمالي اللي بتضاعف العدد من داخل الشيت نفسه!
+        mask = df.astype(str).apply(lambda x: x.str.contains('إجمالي|اجمالي|إجمالى|اجمالى|Total|مجموع|الاجمالي', case=False, na=False)).any(axis=1)
+        df = df[~mask]
+        
+        type_col = next((c for c in df.columns if 'نوع' in c), None)
+        if type_col:
+            df['النوع'] = df[type_col].astype(str).str.strip()
         else:
             df['النوع'] = 'غير محدد'
             
         df['النوع'] = df['النوع'].apply(lambda x: 'معلق' if 'معلق' in x or 'هوائي' in x else ('كشك' if 'كشك' in x else ('غرفة' if 'غرف' in x else 'أخرى')))
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
         
-        # التعديل: دالة دقيقة لفرز الملكية لشركة أو لغير
         def get_ownership(x):
             x_str = str(x).strip()
-            if x_str in ['nan', 'None', '', 'غير محدد']:
+            if pd.isna(x) or x_str in ['nan', 'None', '', 'غير محدد']:
                 return 'غير محدد'
             elif 'شركة' in x_str:
                 return 'ملك الشركة'
             else:
                 return 'ملك الغير' 
         
-        if 'الملكية' in df.columns:
-            df['الملكية'] = df['الملكية'].apply(get_ownership)
+        owner_col = next((c for c in df.columns if 'ملكي' in c), None)
+        if owner_col:
+            df['الملكية'] = df[owner_col].apply(get_ownership)
         else:
             df['الملكية'] = 'غير محدد'
         
@@ -153,10 +165,6 @@ def load_all_transformers():
         else:
             df['الهندسة'] = df['الهندسة'].fillna('هندسة غير محددة').astype(str)
             
-        if 'القدرة' not in df.columns:
-            df['القدرة'] = 0.0
-            
-        # توفير الـ RAM
         cols_to_category = ['القطاع', 'الهندسة', 'النوع', 'الملكية']
         for col in cols_to_category:
             if col in df.columns:
