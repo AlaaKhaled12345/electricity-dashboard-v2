@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import os
-import numpy as np
 
 # ==========================================
 # 1. إعداد الصفحة والتصميم (CSS)
@@ -27,22 +26,21 @@ st.markdown("""
     .card-company { border-right-color: #2980b9; }
     .card-private { border-right-color: #c0392b; }
     .card-total { border-right-color: #f39c12; }
-    .card-blanks { border-right-color: #7f8c8d; background: linear-gradient(135deg, #ffffff 0%, #f0f3f4 100%); } 
-    .card-other { border-right-color: #8e44ad; }
+    .card-unknown { border-right-color: #e74c3c; background: linear-gradient(135deg, #ffffff 0%, #fdedec 100%); } 
     
     h3 { color: #2E86C1; border-bottom: 2px solid #eee; padding-bottom: 10px; }
     .table-header { background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-right: 5px solid #2E86C1; margin-bottom: 15px; color: #2c3e50; font-weight: bold; font-size: 1.1rem; }
 </style>
 """, unsafe_allow_html=True)
 
-COLOR_MAP = {'كشك': '#2980b9', 'غرفة': '#c0392b', 'معلق': '#f1c40f', 'هوائي': '#8e44ad', 'أخرى': '#bdc3c7', 'Blanks': '#7f8c8d'}
+COLOR_MAP = {'كشك': '#2980b9', 'غرفة': '#c0392b', 'معلق': '#f1c40f', 'هوائي': '#8e44ad', 'أخرى': '#bdc3c7', 'غير محدد': '#7f8c8d'}
 
 # ==========================================
 # 2. دوال المعالجة والتحميل المطابقة للإكسيل
 # ==========================================
 
 def clean_sector_name(name):
-    if pd.isna(name) or str(name).strip() == '' or str(name).lower() == 'nan': return "Blanks"
+    if pd.isna(name) or str(name).strip() == '' or str(name).lower() == 'nan': return "غير محدد"
     s = str(name).strip().replace('أ', 'ا').replace('ة', 'ه').replace('قطاعى', '').replace('قطاع', '').strip()
     return f"قطاع {' '.join(s.split())}"
 
@@ -58,8 +56,8 @@ def metric_card(title, value, subtitle="", style_class=""):
 def render_safe_sunburst(df, path_cols, **kwargs):
     df_clean = df.copy()
     for col in path_cols:
-        df_clean[col] = df_clean[col].astype(str).replace(['nan', 'None', 'NaN', 'NaT', ''], 'Blanks')
-        df_clean[col] = df_clean[col].apply(lambda x: 'Blanks' if not x.strip() else x.strip())
+        df_clean[col] = df_clean[col].astype(str).replace(['nan', 'None', 'NaN', 'NaT', ''], 'غير محدد')
+        df_clean[col] = df_clean[col].apply(lambda x: 'غير محدد' if not x.strip() else x.strip())
         
     try:
         fig = px.sunburst(df_clean, path=path_cols, **kwargs)
@@ -104,51 +102,60 @@ def load_all_transformers():
     
     try:
         all_sheets = pd.read_excel(file_name, sheet_name=None)
-        df = pd.concat(all_sheets.values(), ignore_index=True)
         
-        # --- 1. معالجة نوع المبنى بشكل مطابق لفلتر الإكسيل ---
-        if 'نوع المبني' not in df.columns:
-            df['نوع المبني'] = np.nan
+        valid_dfs = []
+        for sheet_name, sheet_df in all_sheets.items():
+            if any(word in sheet_name.lower() for word in ['اجمالي', 'إجمالي', 'summary', 'ملخص', 'مجمع', 'total']):
+                continue
+            sheet_df.columns = sheet_df.columns.astype(str).str.strip()
+            valid_dfs.append(sheet_df)
             
+        if not valid_dfs: return pd.DataFrame()
+        df = pd.concat(valid_dfs, ignore_index=True)
+        
+        # استبعاد الصفوف الفارغة أو المجاميع
+        df = df.dropna(subset=['القطاع'], how='all')
+        mask = df.astype(str).apply(lambda x: x.str.contains('إجمالي|اجمالي|Total|مجموع|الاجمالي', case=False, na=False)).any(axis=1)
+        df = df[~mask]
+        
+        # --- معالجة نوع المبنى (أي حاجة مش كشك/غرفة/معلق هتتحسب غير محدد) ---
+        type_col = next((c for c in df.columns if 'نوع' in c), None)
         def exact_map_type(x):
-            # التأكد من الخلايا الفارغة تماماً
             if pd.isna(x) or str(x).strip() == '' or str(x).strip().lower() == 'nan': 
-                return 'Blanks'
-            
+                return 'غير محدد'
             x_str = str(x).strip()
             if 'معلق' in x_str or 'هوائي' in x_str: return 'معلق'
             if 'كشك' in x_str: return 'كشك'
             if 'غرف' in x_str or 'غرفة' in x_str: return 'غرفة'
-            return 'أخرى' # لأي نص غريب غير اللي فوق
+            return 'غير محدد'
             
-        df['النوع'] = df['نوع المبني'].apply(exact_map_type)
+        if type_col:
+            df['النوع'] = df[type_col].apply(exact_map_type)
+        else:
+            df['النوع'] = 'غير محدد'
         
-        # --- 2. معالجة الملكية بشكل مطابق لفلتر الإكسيل ---
-        if 'الملكية' not in df.columns:
-            df['الملكية'] = np.nan
-            
+        # --- معالجة الملكية (أي حاجة مش شركة/غير هتتحسب غير محدد) ---
+        owner_col = next((c for c in df.columns if 'ملكي' in c), None)
         def exact_map_ownership(x):
-            # التأكد من الخلايا الفارغة تماماً
             if pd.isna(x) or str(x).strip() == '' or str(x).strip().lower() == 'nan': 
-                return 'Blanks'
-            
-            x_str = str(x).strip()
-            if 'شركة' in x_str: return 'ملك الشركة'
+                return 'غير محدد'
+            x_str = str(x).replace('ة','ه').replace('أ','ا').strip()
+            if 'شرك' in x_str: return 'ملك الشركة'
             if 'غير' in x_str: return 'ملك الغير'
-            return 'أخرى' # لأي نصوص أخرى غير فارغة
+            return 'غير محدد' 
             
-        df['الملكية'] = df['الملكية'].apply(exact_map_ownership)
+        if owner_col:
+            df['الملكية'] = df[owner_col].apply(exact_map_ownership)
+        else:
+            df['الملكية'] = 'غير محدد'
         
         # معالجة القطاع والهندسة
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
         
         if 'الهندسة' not in df.columns:
-            df['الهندسة'] = 'Blanks'
+            df['الهندسة'] = 'غير محدد'
         else:
-            df['الهندسة'] = df['الهندسة'].apply(lambda x: 'Blanks' if pd.isna(x) or str(x).strip() == '' or str(x).lower() == 'nan' else str(x).strip())
-            
-        if 'القدرة' not in df.columns:
-            df['القدرة'] = 0.0
+            df['الهندسة'] = df['الهندسة'].apply(lambda x: 'غير محدد' if pd.isna(x) or str(x).strip() == '' else str(x).strip())
             
         cols_to_category = ['القطاع', 'الهندسة', 'النوع', 'الملكية']
         for col in cols_to_category:
@@ -188,36 +195,23 @@ with tab_home:
     c1, c2, c3 = st.columns(3)
     with c1: metric_card("المحطات العامة", count_st, "إجمالي المحطات")
     with c2: metric_card("الموزعات", count_dst, "إجمالي الموزعات (517)")
-    with c3: metric_card("المحولات (كل القطاعات)", count_trans, "إجمالي محولات الشركة", "card-total")
+    with c3: metric_card("إجمالي المحولات", count_trans, "كل القطاعات", "card-total")
 
     if not df_trans.empty:
         st.markdown("---")
-        st.markdown("### 🧬 تفاصيل المحولات (على مستوى الشركة)")
+        st.markdown("### 🎯 تفاصيل المحولات وملخص النواقص")
+        
+        # الحسابات الخاصة بطلباتك بالضبط
+        count_company = len(df_trans[df_trans['الملكية'] == 'ملك الشركة'])
+        count_private = len(df_trans[df_trans['الملكية'] == 'ملك الغير'])
+        count_unspecified_own = len(df_trans[df_trans['الملكية'] == 'غير محدد'])
+        count_unspecified_type = len(df_trans[df_trans['النوع'] == 'غير محدد'])
         
         t1, t2, t3, t4 = st.columns(4)
-        with t1: metric_card("إجمالي الأكشاك", len(df_trans[df_trans['النوع']=='كشك']), style_class="card-total")
-        with t2: metric_card("إجمالي الغرف", len(df_trans[df_trans['النوع']=='غرفة']), style_class="card-total")
-        with t3: metric_card("إجمالي المعلقات", len(df_trans[df_trans['النوع']=='معلق']), style_class="card-total")
-        with t4: metric_card("Blanks (نوع مبنى)", len(df_trans[df_trans['النوع']=='Blanks']), "خلايا فارغة تماماً بالإكسيل", style_class="card-blanks")
-
-        df_co = df_trans[df_trans['الملكية'] == 'ملك الشركة']
-        df_pr = df_trans[df_trans['الملكية'] == 'ملك الغير']
-        df_blanks = df_trans[df_trans['الملكية'] == 'Blanks'] 
-        df_other = df_trans[df_trans['الملكية'] == 'أخرى'] # النصوص التي ليست شركة ولا غير ولا فارغة
-        
-        col_co, col_pr, col_blanks, col_other = st.columns(4)
-        with col_co:
-            st.info("🏢 **ملك الشركة**")
-            metric_card("الإجمالي", len(df_co), style_class="card-company")
-        with col_pr:
-            st.warning("👤 **ملك الغير**")
-            metric_card("الإجمالي", len(df_pr), style_class="card-private")
-        with col_blanks:
-            st.error("❓ **Blanks (خلايا فارغة)**")
-            metric_card("بدون ملكية", len(df_blanks), style_class="card-blanks")
-        with col_other:
-            st.success("🧩 **نصوص أخرى**")
-            metric_card("لا شركة ولا غير", len(df_other), "مكتوبة بنص مختلف", style_class="card-other")
+        with t1: metric_card("ملك الشركة", count_company, "محولات", "card-company")
+        with t2: metric_card("ملك الغير", count_private, "محولات", "card-private")
+        with t3: metric_card("ملكية غير محددة", count_unspecified_own, "الخانة فارغة بالإكسيل", "card-unknown")
+        with t4: metric_card("نوع مبنى غير محدد", count_unspecified_type, "الخانة فارغة بالإكسيل", "card-unknown")
 
     st.markdown("---")
     st.markdown("### 📈 الرسوم التوضيحية المجمعة")
@@ -263,9 +257,9 @@ with tab_dist:
 # -----------------------------------------------------------------------------
 with tab_all_trans:
     if not df_trans.empty:
-        st.markdown("### 🎯 استعلام ديناميكي لمحولات القطاعات وتتبع النواقص")
+        st.markdown("### 🎯 استعلام ديناميكي لمحولات القطاعات")
         
-        all_sectors = sorted([s for s in df_trans['القطاع'].unique() if str(s) not in ['nan', 'Blanks']])
+        all_sectors = sorted([s for s in df_trans['القطاع'].unique() if str(s) != 'غير محدد'])
         selected_sec = st.selectbox("📌 اختر القطاع لعرض محولاته:", ["الكل"] + all_sectors)
         
         df_view = df_trans if selected_sec == "الكل" else df_trans[df_trans['القطاع'] == selected_sec]
@@ -273,21 +267,29 @@ with tab_all_trans:
         if not df_view.empty:
             num_engs = df_view['الهندسة'].nunique()
             num_total_trans = len(df_view)
-            num_blanks_own = len(df_view[df_view['الملكية'] == 'Blanks'])
-            num_blanks_type = len(df_view[df_view['النوع'] == 'Blanks'])
+            num_company = len(df_view[df_view['الملكية'] == 'ملك الشركة'])
+            num_private = len(df_view[df_view['الملكية'] == 'ملك الغير'])
+            num_unspecified_own = len(df_view[df_view['الملكية'] == 'غير محدد'])
+            num_unspecified_type = len(df_view[df_view['النوع'] == 'غير محدد'])
             
+            # كروت البيانات للقطاع
+            st.markdown("<br>", unsafe_allow_html=True)
             c_v1, c_v2, c_v3, c_v4 = st.columns(4)
             with c_v1: metric_card("عدد الهندسات", num_engs, "")
             with c_v2: metric_card("إجمالي المحولات", num_total_trans, "")
-            with c_v3: metric_card("Blanks (خلايا ملكية فارغة)", num_blanks_own, "مطابق للإكسيل", "card-blanks")
-            with c_v4: metric_card("Blanks (خلايا نوع فارغة)", num_blanks_type, "مطابق للإكسيل", "card-blanks")
+            with c_v3: metric_card("ملك الشركة", num_company, "", "card-company")
+            with c_v4: metric_card("ملك الغير", num_private, "", "card-private")
+            
+            c_v5, c_v6 = st.columns(2)
+            with c_v5: metric_card("محولات بدون ملكية", num_unspecified_own, "غير محددة الملكية", "card-unknown")
+            with c_v6: metric_card("محولات بدون نوع مبنى", num_unspecified_type, "غير محددة النوع", "card-unknown")
             
             st.markdown("---")
             
             col_data, col_charts = st.columns([1.2, 1])
             
             with col_data:
-                st.markdown("<div class='table-header'>📋 تفاصيل المحولات (النوع والملكية وتتبع الـ Blanks)</div>", unsafe_allow_html=True)
+                st.markdown("<div class='table-header'>📋 تفاصيل المحولات (النوع والملكية)</div>", unsafe_allow_html=True)
                 trans_grouped = df_view.groupby(['الهندسة', 'الملكية', 'النوع']).size().reset_index(name='العدد')
                 if not trans_grouped.empty:
                     pivot_trans = trans_grouped.pivot_table(index='الهندسة', columns=['الملكية', 'النوع'], values='العدد', fill_value=0).astype(int)
