@@ -53,7 +53,6 @@ def metric_card(title, value, subtitle="", style_class=""):
     </div>
     """, unsafe_allow_html=True)
 
-# --- دالة الرسم الآمنة لمنع الشاشة الحمراء ---
 def render_safe_sunburst(df, path_cols, **kwargs):
     df_clean = df.copy()
     for col in path_cols:
@@ -87,15 +86,14 @@ def load_distributors():
         df = pd.read_excel(files[0]).iloc[:, [1, 2, 3, 4]]
         df.columns = ['القطاع', 'الهندسة', 'مسلسل', 'الموزع']
         
-        # --- الإصلاح هنا: نملأ القطاع والهندسة فقط ---
-        df['القطاع'] = df['القطاع'].ffill()
-        df['الهندسة'] = df['الهندسة'].ffill()
+        # التعديل هنا: نملأ الخلايا المدمجة للقطاع والهندسة فقط عشان الموزعات متتكررش
+        df[['القطاع', 'الهندسة']] = df[['القطاع', 'الهندسة']].ffill()
         
-        # --- حذف أي صف لا يحتوي على اسم موزع لضمان دقة العد ---
+        # نحذف أي صف مفيهوش اسم موزع حقيقي
         df = df.dropna(subset=['الموزع'])
-        # حذف أي صفوف قد تكون مجرد عناوين أو إجماليات من الإكسيل
-        df = df[~df['الموزع'].astype(str).str.contains('إجمالي|الموزع|الاجمالي', na=False)]
-        df = df[df['الموزع'].astype(str).str.strip() != '']
+        
+        # نحذف الصفوف اللي مكتوب فيها إجمالي عشان متتحسبش موزع زيادة
+        df = df[~df['الموزع'].astype(str).str.contains('إجمالي|الاجمالي|الموزع', na=False)]
         
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
         
@@ -104,7 +102,8 @@ def load_distributors():
         summary = df.groupby('القطاع').agg({'الهندسة': 'nunique', 'الموزع': 'count'}).reset_index()
         summary.columns = ['القطاع', 'عدد الهندسات', 'عدد الموزعات']
         return df, summary
-    except: return None, None
+    except Exception as e: 
+        return None, None
 
 @st.cache_data
 def load_all_transformers():
