@@ -53,23 +53,20 @@ def metric_card(title, value, subtitle="", style_class=""):
     </div>
     """, unsafe_allow_html=True)
 
-# --- دالة الرسم الآمنة لتجنب انهيار التطبيق ---
+# --- دالة الرسم الآمنة لمنع الشاشة الحمراء ---
 def render_safe_sunburst(df, path_cols, **kwargs):
     df_clean = df.copy()
-    # تنظيف صارم للنصوص لمنع مشاكل Plotly
     for col in path_cols:
         df_clean[col] = df_clean[col].astype(str).replace(['nan', 'None', 'NaN', 'NaT', ''], 'غير محدد')
         df_clean[col] = df_clean[col].apply(lambda x: 'غير محدد' if not x.strip() else x.strip())
         
     try:
         fig = px.sunburst(df_clean, path=path_cols, **kwargs)
-        # تعديل الهوامش للرسومات الصغيرة
         if 'height' in kwargs and kwargs['height'] <= 400:
             fig.update_layout(margin=dict(t=0, l=0, r=0, b=0))
         st.plotly_chart(fig, use_container_width=True)
     except Exception as e:
-        # إذا فشل الرسم، لا نوقف التطبيق، بل نعرض رسالة خطأ صغيرة
-        st.warning("⚠️ لا يمكن عرض المخطط الهرمي لهذه البيانات المحددة بسبب تداخل في المسميات.")
+        st.warning("⚠️ لا يمكن عرض المخطط الهرمي لهذه البيانات المحددة لوجود نقص في بعض التصنيفات.")
 
 @st.cache_data
 def load_stations():
@@ -89,7 +86,17 @@ def load_distributors():
     try:
         df = pd.read_excel(files[0]).iloc[:, [1, 2, 3, 4]]
         df.columns = ['القطاع', 'الهندسة', 'مسلسل', 'الموزع']
-        df = df.ffill()
+        
+        # --- الإصلاح هنا: نملأ القطاع والهندسة فقط ---
+        df['القطاع'] = df['القطاع'].ffill()
+        df['الهندسة'] = df['الهندسة'].ffill()
+        
+        # --- حذف أي صف لا يحتوي على اسم موزع لضمان دقة العد ---
+        df = df.dropna(subset=['الموزع'])
+        # حذف أي صفوف قد تكون مجرد عناوين أو إجماليات من الإكسيل
+        df = df[~df['الموزع'].astype(str).str.contains('إجمالي|الموزع|الاجمالي', na=False)]
+        df = df[df['الموزع'].astype(str).str.strip() != '']
+        
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
         
         eng_counts = df.groupby('القطاع')['الهندسة'].nunique()
@@ -113,7 +120,6 @@ def load_all_transformers():
         else:
             df['النوع'] = 'غير محدد'
             
-        # تعديل بسيط هنا لضمان قراءة الخانات الفاضية كـ "غير محدد"
         df['النوع'] = df['النوع'].apply(lambda x: 'غير محدد' if x in ['nan', 'None', ''] else ('معلق' if 'معلق' in x or 'هوائي' in x else ('كشك' if 'كشك' in x else ('غرفة' if 'غرف' in x else 'أخرى'))))
         
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
@@ -127,7 +133,6 @@ def load_all_transformers():
         if 'القدرة' not in df.columns:
             df['القدرة'] = 0.0
             
-        # 🔥 التعديل هنا لتقليل استهلاك الـ RAM بشكل كبير 🔥
         cols_to_category = ['القطاع', 'الهندسة', 'النوع', 'الملكية']
         for col in cols_to_category:
             if col in df.columns:
@@ -147,7 +152,6 @@ df_st = load_stations()
 df_dst, df_dst_summ = load_distributors()
 df_trans = load_all_transformers()
 
-# ----------------- التعديل هنا: مسحنا تاب القطاعات -----------------
 tab_home, tab_stations, tab_dist, tab_all_trans = st.tabs([
     "🏠 الرئيسية (Dashboard)", 
     "🏭 المحطات العامة",
@@ -196,7 +200,6 @@ with tab_home:
             with p2: metric_card("غرف", len(df_pr[df_pr['النوع']=='غرفة']), style_class="card-private")
             with p3: metric_card("معلقات", len(df_pr[df_pr['النوع']=='معلق']), style_class="card-private")
 
-        # ------- إضافة كروت النواقص اللي طلبتيها في الرئيسية -------
         st.markdown("#### ⚠️ بيانات غير محددة (نواقص الإكسيل)")
         u1, u2 = st.columns(2)
         with u1: metric_card("ملكية غير محددة", len(df_trans[df_trans['الملكية'] == 'غير محدد']), "خلايا فارغة", "card-unknown")
@@ -259,7 +262,6 @@ with tab_all_trans:
             num_company = len(df_view[df_view['الملكية'] == 'ملك الشركة'])
             num_private = len(df_view[df_view['الملكية'] == 'ملك الغير'])
             
-            # حساب النواقص
             num_unspecified_own = len(df_view[df_view['الملكية'] == 'غير محدد'])
             num_unspecified_type = len(df_view[df_view['النوع'] == 'غير محدد'])
             
@@ -269,7 +271,6 @@ with tab_all_trans:
             with c_v3: metric_card("ملك الشركة", num_company, "محول", "card-company")
             with c_v4: metric_card("ملك الغير", num_private, "محول", "card-private")
             
-            # ------- إضافة كروت النواقص اللي طلبتيها في القطاعات -------
             c_v5, c_v6 = st.columns(2)
             with c_v5: metric_card("ملكية غير محددة", num_unspecified_own, "محولات بدون ملكية", "card-unknown")
             with c_v6: metric_card("نوع غير محدد", num_unspecified_type, "محولات بدون نوع مبنى", "card-unknown")
