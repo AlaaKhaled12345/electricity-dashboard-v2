@@ -83,24 +83,31 @@ def load_distributors():
     files = [f for f in os.listdir('.') if "517" in f and f.endswith('.xlsx')]
     if not files: return None, None
     try:
+        # قراءة أول 4 أعمدة من ملف الموزعات
         df = pd.read_excel(files[0]).iloc[:, [1, 2, 3, 4]]
         df.columns = ['القطاع', 'الهندسة', 'مسلسل', 'الموزع']
         
-        # التعديل هنا: نملأ الخلايا المدمجة للقطاع والهندسة فقط عشان الموزعات متتكررش
+        # 1. الضربة القاضية لصفوف "الإجمالي": مسح أي صف يحتوي على كلمة إجمالي في أي خلية قبل العد
+        mask_total = df.astype(str).apply(lambda x: x.str.contains('إجمالي|اجمالي|الإجمالي|الاجمالي|الموزع', na=False)).any(axis=1)
+        df = df[~mask_total]
+        
+        # 2. ملء الخلايا المدمجة للقطاعات والهندسات فقط 
         df[['القطاع', 'الهندسة']] = df[['القطاع', 'الهندسة']].ffill()
         
-        # نحذف أي صف مفيهوش اسم موزع حقيقي
+        # 3. التأكد من تنظيف عمود الموزع ومسح الفراغات
+        df['الموزع'] = df['الموزع'].astype(str).str.strip()
+        df = df[~df['الموزع'].isin(['nan', 'None', '', 'NaN'])]
         df = df.dropna(subset=['الموزع'])
         
-        # نحذف الصفوف اللي مكتوب فيها إجمالي عشان متتحسبش موزع زيادة
-        df = df[~df['الموزع'].astype(str).str.contains('إجمالي|الاجمالي|الموزع', na=False)]
-        
+        # 4. تنظيف وتوحيد أسماء القطاعات
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
         
+        # تجميع البيانات
         eng_counts = df.groupby('القطاع')['الهندسة'].nunique()
         df['قطاع_للرسم'] = df['القطاع'].apply(lambda x: f"{x} (هندسات: {eng_counts.get(x, 0)})")
         summary = df.groupby('القطاع').agg({'الهندسة': 'nunique', 'الموزع': 'count'}).reset_index()
         summary.columns = ['القطاع', 'عدد الهندسات', 'عدد الموزعات']
+        
         return df, summary
     except Exception as e: 
         return None, None
