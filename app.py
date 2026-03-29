@@ -83,26 +83,21 @@ def load_distributors():
     files = [f for f in os.listdir('.') if "517" in f and f.endswith('.xlsx')]
     if not files: return None, None
     try:
-        # قراءة أول 4 أعمدة من ملف الموزعات
         df = pd.read_excel(files[0]).iloc[:, [1, 2, 3, 4]]
         df.columns = ['القطاع', 'الهندسة', 'مسلسل', 'الموزع']
         
-        # 1. الضربة القاضية لصفوف "الإجمالي": مسح أي صف يحتوي على كلمة إجمالي في أي خلية قبل العد
+        # مسح أي صف يحتوي على إجمالي
         mask_total = df.astype(str).apply(lambda x: x.str.contains('إجمالي|اجمالي|الإجمالي|الاجمالي|الموزع', na=False)).any(axis=1)
         df = df[~mask_total]
         
-        # 2. ملء الخلايا المدمجة للقطاعات والهندسات فقط 
         df[['القطاع', 'الهندسة']] = df[['القطاع', 'الهندسة']].ffill()
         
-        # 3. التأكد من تنظيف عمود الموزع ومسح الفراغات
         df['الموزع'] = df['الموزع'].astype(str).str.strip()
         df = df[~df['الموزع'].isin(['nan', 'None', '', 'NaN'])]
         df = df.dropna(subset=['الموزع'])
         
-        # 4. تنظيف وتوحيد أسماء القطاعات
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
         
-        # تجميع البيانات
         eng_counts = df.groupby('القطاع')['الهندسة'].nunique()
         df['قطاع_للرسم'] = df['القطاع'].apply(lambda x: f"{x} (هندسات: {eng_counts.get(x, 0)})")
         summary = df.groupby('القطاع').agg({'الهندسة': 'nunique', 'الموزع': 'count'}).reset_index()
@@ -289,7 +284,11 @@ with tab_all_trans:
                 st.markdown("<div class='table-header'>📋 تفاصيل المحولات (النوع والملكية)</div>", unsafe_allow_html=True)
                 trans_grouped = df_view.groupby(['الهندسة', 'الملكية', 'النوع']).size().reset_index(name='العدد')
                 if not trans_grouped.empty:
+                    # التعديل هنا: تبسيط الجدول عشان يكون مفهوم
                     pivot_trans = trans_grouped.pivot_table(index='الهندسة', columns=['الملكية', 'النوع'], values='العدد', fill_value=0).astype(int)
+                    # دمج المستويين بتوع الأعمدة لاسم واحد مفهوم
+                    pivot_trans.columns = [f"{own} - {typ}" for own, typ in pivot_trans.columns]
+                    
                     st.dataframe(pivot_trans, use_container_width=True, height=400)
                 
             with col_charts:
