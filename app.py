@@ -159,6 +159,11 @@ tab_home, tab_stations, tab_dist, tab_all_trans = st.tabs([
     "⚡ المحولات الشاملة"
 ])
 
+def get_columns_to_display(df, exclude_cols):
+    keywords = ['كود', 'رقم', 'اسم', 'محول']
+    id_columns = [col for col in df.columns if any(kw in col for kw in keywords) and col not in exclude_cols]
+    return id_columns
+
 # -----------------------------------------------------------------------------
 # TAB 1: الرئيسية
 # -----------------------------------------------------------------------------
@@ -202,14 +207,25 @@ with tab_home:
 
         st.markdown("#### ⚠️ بيانات غير محددة (نواقص الإكسيل)")
         u1, u2 = st.columns(2)
-        with u1: metric_card("ملكية غير محددة", len(df_trans[df_trans['الملكية'] == 'غير محدد الملكية']), "خلايا فارغة", "card-unknown")
-        with u2: metric_card("نوع مبنى غير محدد", len(df_trans[df_trans['النوع'] == 'غير محدد النوع']), "خلايا فارغة", "card-unknown")
         
-        # --- إضافة تفاصيل النواقص في الرئيسية ---
-        df_missing_all = df_trans[(df_trans['الملكية'] == 'غير محدد الملكية') | (df_trans['النوع'] == 'غير محدد النوع')]
-        if not df_missing_all.empty:
-            with st.expander("🔍 اضغط هنا لعرض تفاصيل المحولات التي تحتوي على بيانات غير محددة (نواقص)"):
-                st.dataframe(df_missing_all, use_container_width=True)
+        # --- تطبيق فكرتك هنا في الرئيسية ---
+        with u1: 
+            df_missing_own = df_trans[df_trans['الملكية'] == 'غير محدد الملكية']
+            metric_card("ملكية غير محددة", len(df_missing_own), "خلايا فارغة", "card-unknown")
+            if not df_missing_own.empty:
+                with st.expander("🔍 عرض تفاصيل النواقص في الملكية فقط"):
+                    id_cols = get_columns_to_display(df_missing_own, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
+                    display_cols = [col for col in (['القطاع', 'الهندسة'] + id_cols + ['الملكية']) if col in df_missing_own.columns]
+                    st.dataframe(df_missing_own[display_cols], use_container_width=True)
+
+        with u2: 
+            df_missing_type = df_trans[df_trans['النوع'] == 'غير محدد النوع']
+            metric_card("نوع مبنى غير محدد", len(df_missing_type), "خلايا فارغة", "card-unknown")
+            if not df_missing_type.empty:
+                with st.expander("🔍 عرض تفاصيل النواقص في نوع المبنى فقط"):
+                    id_cols = get_columns_to_display(df_missing_type, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
+                    display_cols = [col for col in (['القطاع', 'الهندسة'] + id_cols + ['النوع']) if col in df_missing_type.columns]
+                    st.dataframe(df_missing_type[display_cols], use_container_width=True)
 
     st.markdown("---")
     st.markdown("### 📈 الرسوم التوضيحية المجمعة")
@@ -268,24 +284,32 @@ with tab_all_trans:
             num_company = len(df_view[df_view['الملكية'] == 'ملك الشركة'])
             num_private = len(df_view[df_view['الملكية'] == 'ملك الغير'])
             
-            num_unspecified_own = len(df_view[df_view['الملكية'] == 'غير محدد الملكية'])
-            num_unspecified_type = len(df_view[df_view['النوع'] == 'غير محدد النوع'])
-            
             c_v1, c_v2, c_v3, c_v4 = st.columns(4)
             with c_v1: metric_card("عدد الهندسات", num_engs, "هندسة بالقطاع")
             with c_v2: metric_card("إجمالي المحولات", num_total_trans, "محول")
             with c_v3: metric_card("ملك الشركة", num_company, "محول", "card-company")
             with c_v4: metric_card("ملك الغير", num_private, "محول", "card-private")
             
+            # --- تطبيق فكرتك هنا داخل القطاع المختار ---
             c_v5, c_v6 = st.columns(2)
-            with c_v5: metric_card("ملكية غير محددة", num_unspecified_own, "محولات بدون ملكية", "card-unknown")
-            with c_v6: metric_card("نوع غير محدد", num_unspecified_type, "محولات بدون نوع مبنى", "card-unknown")
             
-            # --- إضافة تفاصيل النواقص في القطاع ---
-            df_missing_sec = df_view[(df_view['الملكية'] == 'غير محدد الملكية') | (df_view['النوع'] == 'غير محدد النوع')]
-            if not df_missing_sec.empty:
-                with st.expander(f"🔍 اضغط هنا لعرض تفاصيل المحولات التي بياناتها ناقصة في {selected_sec}"):
-                    st.dataframe(df_missing_sec, use_container_width=True)
+            with c_v5: 
+                df_view_miss_own = df_view[df_view['الملكية'] == 'غير محدد الملكية']
+                metric_card("ملكية غير محددة", len(df_view_miss_own), "محولات بدون ملكية", "card-unknown")
+                if not df_view_miss_own.empty:
+                    with st.expander(f"🔍 عرض تفاصيل النواقص في الملكية بـ {selected_sec}"):
+                        id_cols = get_columns_to_display(df_view_miss_own, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
+                        display_cols = [col for col in (['الهندسة'] + id_cols + ['الملكية']) if col in df_view_miss_own.columns]
+                        st.dataframe(df_view_miss_own[display_cols], use_container_width=True)
+            
+            with c_v6: 
+                df_view_miss_type = df_view[df_view['النوع'] == 'غير محدد النوع']
+                metric_card("نوع غير محدد", len(df_view_miss_type), "محولات بدون نوع مبنى", "card-unknown")
+                if not df_view_miss_type.empty:
+                    with st.expander(f"🔍 عرض تفاصيل النواقص في نوع المبنى بـ {selected_sec}"):
+                        id_cols = get_columns_to_display(df_view_miss_type, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
+                        display_cols = [col for col in (['الهندسة'] + id_cols + ['النوع']) if col in df_view_miss_type.columns]
+                        st.dataframe(df_view_miss_type[display_cols], use_container_width=True)
             
             st.markdown("---")
             
