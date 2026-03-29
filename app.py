@@ -33,7 +33,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-COLOR_MAP = {'كشك': '#2980b9', 'غرفة': '#c0392b', 'معلق': '#f1c40f', 'هوائي': '#8e44ad', 'أخرى': '#7f8c8d', 'غير محدد': '#bdc3c7'}
+# تعديل الخريطة اللونية لتتناسب مع الاسم الجديد
+COLOR_MAP = {'كشك': '#2980b9', 'غرفة': '#c0392b', 'معلق': '#f1c40f', 'هوائي': '#8e44ad', 'أخرى': '#7f8c8d', 'غير محدد النوع': '#bdc3c7'}
 
 # ==========================================
 # 2. دوال المعالجة والتحميل (Backend Logic)
@@ -86,7 +87,6 @@ def load_distributors():
         df = pd.read_excel(files[0]).iloc[:, [1, 2, 3, 4]]
         df.columns = ['القطاع', 'الهندسة', 'مسلسل', 'الموزع']
         
-        # مسح أي صف يحتوي على إجمالي
         mask_total = df.astype(str).apply(lambda x: x.str.contains('إجمالي|اجمالي|الإجمالي|الاجمالي|الموزع', na=False)).any(axis=1)
         df = df[~mask_total]
         
@@ -119,12 +119,14 @@ def load_all_transformers():
         if 'نوع المبني' in df.columns:
             df['النوع'] = df['نوع المبني'].astype(str).str.strip()
         else:
-            df['النوع'] = 'غير محدد'
+            df['النوع'] = 'غير محدد النوع'
             
-        df['النوع'] = df['النوع'].apply(lambda x: 'غير محدد' if x in ['nan', 'None', ''] else ('معلق' if 'معلق' in x or 'هوائي' in x else ('كشك' if 'كشك' in x else ('غرفة' if 'غرف' in x else 'أخرى'))))
+        # التعديل هنا لتوضيح النوع
+        df['النوع'] = df['النوع'].apply(lambda x: 'غير محدد النوع' if x in ['nan', 'None', ''] else ('معلق' if 'معلق' in x or 'هوائي' in x else ('كشك' if 'كشك' in x else ('غرفة' if 'غرف' in x else 'أخرى'))))
         
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
-        df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'غير محدد'))
+        # التعديل هنا لتوضيح الملكية
+        df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'غير محدد الملكية'))
         
         if 'الهندسة' not in df.columns:
             df['الهندسة'] = 'هندسة غير محددة'
@@ -203,8 +205,9 @@ with tab_home:
 
         st.markdown("#### ⚠️ بيانات غير محددة (نواقص الإكسيل)")
         u1, u2 = st.columns(2)
-        with u1: metric_card("ملكية غير محددة", len(df_trans[df_trans['الملكية'] == 'غير محدد']), "خلايا فارغة", "card-unknown")
-        with u2: metric_card("نوع مبنى غير محدد", len(df_trans[df_trans['النوع'] == 'غير محدد']), "خلايا فارغة", "card-unknown")
+        # تعديل الأسماء هنا لتطابق الكود الجديد
+        with u1: metric_card("ملكية غير محددة", len(df_trans[df_trans['الملكية'] == 'غير محدد الملكية']), "خلايا فارغة", "card-unknown")
+        with u2: metric_card("نوع مبنى غير محدد", len(df_trans[df_trans['النوع'] == 'غير محدد النوع']), "خلايا فارغة", "card-unknown")
 
     st.markdown("---")
     st.markdown("### 📈 الرسوم التوضيحية المجمعة")
@@ -263,8 +266,9 @@ with tab_all_trans:
             num_company = len(df_view[df_view['الملكية'] == 'ملك الشركة'])
             num_private = len(df_view[df_view['الملكية'] == 'ملك الغير'])
             
-            num_unspecified_own = len(df_view[df_view['الملكية'] == 'غير محدد'])
-            num_unspecified_type = len(df_view[df_view['النوع'] == 'غير محدد'])
+            # تعديل الأسماء لتطابق التحديث الجديد
+            num_unspecified_own = len(df_view[df_view['الملكية'] == 'غير محدد الملكية'])
+            num_unspecified_type = len(df_view[df_view['النوع'] == 'غير محدد النوع'])
             
             c_v1, c_v2, c_v3, c_v4 = st.columns(4)
             with c_v1: metric_card("عدد الهندسات", num_engs, "هندسة بالقطاع")
@@ -284,11 +288,8 @@ with tab_all_trans:
                 st.markdown("<div class='table-header'>📋 تفاصيل المحولات (النوع والملكية)</div>", unsafe_allow_html=True)
                 trans_grouped = df_view.groupby(['الهندسة', 'الملكية', 'النوع']).size().reset_index(name='العدد')
                 if not trans_grouped.empty:
-                    # التعديل هنا: تبسيط الجدول عشان يكون مفهوم
+                    # رجعنا الجدول لشكله المتداخل الأصلي المريح للعين
                     pivot_trans = trans_grouped.pivot_table(index='الهندسة', columns=['الملكية', 'النوع'], values='العدد', fill_value=0).astype(int)
-                    # دمج المستويين بتوع الأعمدة لاسم واحد مفهوم
-                    pivot_trans.columns = [f"{own} - {typ}" for own, typ in pivot_trans.columns]
-                    
                     st.dataframe(pivot_trans, use_container_width=True, height=400)
                 
             with col_charts:
