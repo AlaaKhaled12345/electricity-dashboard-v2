@@ -33,7 +33,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# تعديل الخريطة اللونية لتتناسب مع الاسم الجديد
 COLOR_MAP = {'كشك': '#2980b9', 'غرفة': '#c0392b', 'معلق': '#f1c40f', 'هوائي': '#8e44ad', 'أخرى': '#7f8c8d', 'غير محدد النوع': '#bdc3c7'}
 
 # ==========================================
@@ -121,11 +120,9 @@ def load_all_transformers():
         else:
             df['النوع'] = 'غير محدد النوع'
             
-        # التعديل هنا لتوضيح النوع
         df['النوع'] = df['النوع'].apply(lambda x: 'غير محدد النوع' if x in ['nan', 'None', ''] else ('معلق' if 'معلق' in x or 'هوائي' in x else ('كشك' if 'كشك' in x else ('غرفة' if 'غرف' in x else 'أخرى'))))
         
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
-        # التعديل هنا لتوضيح الملكية
         df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'غير محدد الملكية'))
         
         if 'الهندسة' not in df.columns:
@@ -205,9 +202,14 @@ with tab_home:
 
         st.markdown("#### ⚠️ بيانات غير محددة (نواقص الإكسيل)")
         u1, u2 = st.columns(2)
-        # تعديل الأسماء هنا لتطابق الكود الجديد
         with u1: metric_card("ملكية غير محددة", len(df_trans[df_trans['الملكية'] == 'غير محدد الملكية']), "خلايا فارغة", "card-unknown")
         with u2: metric_card("نوع مبنى غير محدد", len(df_trans[df_trans['النوع'] == 'غير محدد النوع']), "خلايا فارغة", "card-unknown")
+        
+        # --- إضافة تفاصيل النواقص في الرئيسية ---
+        df_missing_all = df_trans[(df_trans['الملكية'] == 'غير محدد الملكية') | (df_trans['النوع'] == 'غير محدد النوع')]
+        if not df_missing_all.empty:
+            with st.expander("🔍 اضغط هنا لعرض تفاصيل المحولات التي تحتوي على بيانات غير محددة (نواقص)"):
+                st.dataframe(df_missing_all, use_container_width=True)
 
     st.markdown("---")
     st.markdown("### 📈 الرسوم التوضيحية المجمعة")
@@ -266,7 +268,6 @@ with tab_all_trans:
             num_company = len(df_view[df_view['الملكية'] == 'ملك الشركة'])
             num_private = len(df_view[df_view['الملكية'] == 'ملك الغير'])
             
-            # تعديل الأسماء لتطابق التحديث الجديد
             num_unspecified_own = len(df_view[df_view['الملكية'] == 'غير محدد الملكية'])
             num_unspecified_type = len(df_view[df_view['النوع'] == 'غير محدد النوع'])
             
@@ -280,6 +281,12 @@ with tab_all_trans:
             with c_v5: metric_card("ملكية غير محددة", num_unspecified_own, "محولات بدون ملكية", "card-unknown")
             with c_v6: metric_card("نوع غير محدد", num_unspecified_type, "محولات بدون نوع مبنى", "card-unknown")
             
+            # --- إضافة تفاصيل النواقص في القطاع ---
+            df_missing_sec = df_view[(df_view['الملكية'] == 'غير محدد الملكية') | (df_view['النوع'] == 'غير محدد النوع')]
+            if not df_missing_sec.empty:
+                with st.expander(f"🔍 اضغط هنا لعرض تفاصيل المحولات التي بياناتها ناقصة في {selected_sec}"):
+                    st.dataframe(df_missing_sec, use_container_width=True)
+            
             st.markdown("---")
             
             col_data, col_charts = st.columns([1.2, 1])
@@ -288,7 +295,6 @@ with tab_all_trans:
                 st.markdown("<div class='table-header'>📋 تفاصيل المحولات (النوع والملكية)</div>", unsafe_allow_html=True)
                 trans_grouped = df_view.groupby(['الهندسة', 'الملكية', 'النوع']).size().reset_index(name='العدد')
                 if not trans_grouped.empty:
-                    # رجعنا الجدول لشكله المتداخل الأصلي المريح للعين
                     pivot_trans = trans_grouped.pivot_table(index='الهندسة', columns=['الملكية', 'النوع'], values='العدد', fill_value=0).astype(int)
                     st.dataframe(pivot_trans, use_container_width=True, height=400)
                 
