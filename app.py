@@ -33,6 +33,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# خريطة ألوان خاصة بأنواع المحولات
 COLOR_MAP = {'كشك': '#2980b9', 'غرفة': '#c0392b', 'معلق': '#f1c40f', 'هوائي': '#8e44ad', 'أخرى': '#7f8c8d', 'غير محدد النوع': '#bdc3c7'}
 
 # ==========================================
@@ -56,8 +57,9 @@ def metric_card(title, value, subtitle="", style_class=""):
 def render_safe_sunburst(df, path_cols, **kwargs):
     df_clean = df.copy()
     for col in path_cols:
-        df_clean[col] = df_clean[col].astype(str).replace(['nan', 'None', 'NaN', 'NaT', ''], 'غير محدد')
-        df_clean[col] = df_clean[col].apply(lambda x: 'غير محدد' if not x.strip() else x.strip())
+        if col in df_clean.columns:
+            df_clean[col] = df_clean[col].astype(str).replace(['nan', 'None', 'NaN', 'NaT', ''], 'غير محدد')
+            df_clean[col] = df_clean[col].apply(lambda x: 'غير محدد' if not x.strip() else x.strip())
         
     try:
         fig = px.sunburst(df_clean, path=path_cols, **kwargs)
@@ -152,6 +154,17 @@ df_st = load_stations()
 df_dst, df_dst_summ = load_distributors()
 df_trans = load_all_transformers()
 
+# --- خريطة ألوان موحدة للقطاعات (لضمان تطابق ألوان Sunburst و Bar Charts) ---
+all_sectors = set()
+if df_st is not None: all_sectors.update(df_st['القطاع'].dropna().unique())
+if df_dst is not None: all_sectors.update(df_dst['القطاع'].dropna().unique())
+if not df_trans.empty: all_sectors.update(df_trans['القطاع'].dropna().unique())
+
+# نستخدم لوحة ألوان كبيرة من Plotly
+palette = px.colors.qualitative.Alphabet + px.colors.qualitative.Dark24
+SECTOR_COLOR_MAP = {sector: palette[i % len(palette)] for i, sector in enumerate(sorted(all_sectors))}
+# -----------------------------------------------------------------------------
+
 tab_home, tab_stations, tab_dist, tab_all_trans = st.tabs([
     "🏠 الرئيسية (Dashboard)", 
     "🏭 المحطات العامة",
@@ -208,7 +221,6 @@ with tab_home:
         st.markdown("#### ⚠️ بيانات غير محددة (نواقص الإكسيل)")
         u1, u2 = st.columns(2)
         
-        # --- تطبيق فكرتك هنا في الرئيسية ---
         with u1: 
             df_missing_own = df_trans[df_trans['الملكية'] == 'غير محدد الملكية']
             metric_card("ملكية غير محددة", len(df_missing_own), "خلايا فارغة", "card-unknown")
@@ -232,10 +244,10 @@ with tab_home:
     row3_c1, row3_c2, row3_c3 = st.columns(3)
     with row3_c1:
         if df_st is not None: 
-            render_safe_sunburst(df_st, ['القطاع', 'المحطة'], title="المحطات العامة")
+            render_safe_sunburst(df_st, ['القطاع', 'المحطة'], color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, title="المحطات العامة")
     with row3_c2:
         if df_dst is not None: 
-            render_safe_sunburst(df_dst, ['القطاع', 'الهندسة'], title="الموزعات")
+            render_safe_sunburst(df_dst, ['القطاع', 'الهندسة'], color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, title="الموزعات")
     with row3_c3:
         if not df_trans.empty: 
             render_safe_sunburst(df_trans, ['الملكية', 'النوع'], title="المحولات", color='النوع', color_discrete_map=COLOR_MAP)
@@ -247,21 +259,24 @@ with tab_stations:
     if df_st is not None:
         cs1, cs2 = st.columns([3, 1])
         with cs1: 
-            render_safe_sunburst(df_st, ['القطاع', 'المحطة'], values='العدد', height=700)
+            render_safe_sunburst(df_st, ['القطاع', 'المحطة'], values='العدد', color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, height=700)
         with cs2:
             cnt_sec = df_st['القطاع'].value_counts().reset_index()
             cnt_sec.columns = ['القطاع', 'العدد']
-            st.plotly_chart(px.bar(cnt_sec, x='القطاع', y='العدد', color='القطاع'), use_container_width=True)
+            fig_st_bar = px.bar(cnt_sec, x='القطاع', y='العدد', color='القطاع', color_discrete_map=SECTOR_COLOR_MAP)
+            st.plotly_chart(fig_st_bar, use_container_width=True)
         st.dataframe(df_st, use_container_width=True)
 
 with tab_dist:
     if df_dst is not None:
         cd1, cd2 = st.columns([1, 2])
         with cd1: 
-            render_safe_sunburst(df_dst, ['قطاع_للرسم', 'الهندسة', 'الموزع'], color='القطاع', height=700)
+            # تم إضافة color_discrete_map للـ Sunburst
+            render_safe_sunburst(df_dst, ['قطاع_للرسم', 'الهندسة', 'الموزع'], color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, height=700)
         with cd2:
             cnt_dst = df_dst.groupby(['القطاع', 'الهندسة']).size().reset_index(name='العدد').sort_values('العدد', ascending=False)
-            fig_d_bar = px.bar(cnt_dst, x='الهندسة', y='العدد', color='القطاع', text='العدد')
+            # تم إضافة color_discrete_map للـ Bar Chart
+            fig_d_bar = px.bar(cnt_dst, x='الهندسة', y='العدد', color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, text='العدد')
             fig_d_bar.update_layout(xaxis=dict(tickangle=-90))
             st.plotly_chart(fig_d_bar, use_container_width=True)
         st.dataframe(df_dst_summ, use_container_width=True)
@@ -273,8 +288,8 @@ with tab_all_trans:
     if not df_trans.empty:
         st.markdown("### 🎯 استعلام ديناميكي لمحولات القطاعات")
         
-        all_sectors = sorted([s for s in df_trans['القطاع'].unique() if s != "قطاع غير محدد" and str(s) != 'nan'])
-        selected_sec = st.selectbox("📌 اختر القطاع لعرض محولاته:", ["الكل"] + all_sectors)
+        all_sectors_list = sorted([s for s in df_trans['القطاع'].unique() if s != "قطاع غير محدد" and str(s) != 'nan'])
+        selected_sec = st.selectbox("📌 اختر القطاع لعرض محولاته:", ["الكل"] + all_sectors_list)
         
         df_view = df_trans if selected_sec == "الكل" else df_trans[df_trans['القطاع'] == selected_sec]
         
@@ -290,7 +305,6 @@ with tab_all_trans:
             with c_v3: metric_card("ملك الشركة", num_company, "محول", "card-company")
             with c_v4: metric_card("ملك الغير", num_private, "محول", "card-private")
             
-            # --- تطبيق فكرتك هنا داخل القطاع المختار ---
             c_v5, c_v6 = st.columns(2)
             
             with c_v5: 
