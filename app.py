@@ -228,7 +228,7 @@ with tab_home:
             with p2: metric_card("غرف", len(df_pr[df_pr['النوع']=='غرفة']), style_class="card-private")
             with p3: metric_card("معلقات", len(df_pr[df_pr['النوع']=='معلق']), style_class="card-private")
 
-        st.markdown("#### ⚠️ بيانات غير محددة (نواقص الإكسيل)")
+        st.markdown("#### ⚠️ بيانات غير محددة (Blanks)")
         u1, u2 = st.columns(2)
         
         with u1: 
@@ -250,7 +250,7 @@ with tab_home:
                     st.dataframe(df_missing_type[display_cols], use_container_width=True)
 
     st.markdown("---")
-    st.markdown("### 🍩 الهياكل التنظيمية (Sunburst Charts)")
+    st.markdown("###  الهياكل التنظيمية (Sunburst Charts)")
     row3_c1, row3_c2, row3_c3 = st.columns(3)
     with row3_c1:
         if df_st is not None: 
@@ -336,7 +336,7 @@ with tab_dist:
 # -----------------------------------------------------------------------------
 with tab_all_trans:
     if not df_trans.empty:
-        st.markdown("### 🎯 استعلام ديناميكي لمحولات القطاعات")
+        st.markdown("###  استعلام ديناميكي لمحولات القطاعات")
         
         all_sectors_list = sorted([s for s in df_trans['القطاع'].unique() if s != "قطاع غير محدد" and str(s) != 'nan'])
         selected_sec = st.selectbox("📌 اختر القطاع لعرض محولاته:", ["الكل"] + all_sectors_list)
