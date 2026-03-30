@@ -35,16 +35,16 @@ st.markdown("""
 
 # ألوان مريحة وهادية جداً لأنواع المحولات
 COLOR_MAP = {
-    'كشك': '#5DADE2',         # أزرق سماوي هادي
-    'غرفة': '#F1948A',        # أحمر فاتح هادي
-    'معلق': '#F7DC6F',        # أصفر باستيل
-    'هوائي': '#BB8FCE',       # موف هادي
-    'أخرى': '#AAB7B8',        # رمادي مخضر
-    'غير محدد النوع': '#E5E7E9' # رمادي فاتح جداً
+    'كشك': '#5DADE2',         
+    'غرفة': '#F1948A',        
+    'معلق': '#F7DC6F',        
+    'هوائي': '#BB8FCE',       
+    'أخرى': '#AAB7B8',        
+    'غير محدد النوع': '#E5E7E9' 
 }
 
 # ==========================================
-# 2. دوال المعالجة والتحميل (Backend Logic)
+# 2. دوال المعالجة والتحميل
 # ==========================================
 
 def clean_sector_name(name):
@@ -161,13 +161,12 @@ df_st = load_stations()
 df_dst, df_dst_summ = load_distributors()
 df_trans = load_all_transformers()
 
-# --- خريطة ألوان مريحة للعين (Soft & Pastel) للقطاعات ---
+# ألوان القطاعات
 all_sectors = set()
 if df_st is not None: all_sectors.update(df_st['القطاع'].dropna().unique())
 if df_dst is not None: all_sectors.update(df_dst['القطاع'].dropna().unique())
 if not df_trans.empty: all_sectors.update(df_trans['القطاع'].dropna().unique())
 
-# مجموعة ألوان مطفية وشيك جداً (Earthy & Pastel tones)
 comfortable_palette = [
     '#457B9D', '#A8DADC', '#F4A261', '#E76F51', '#2A9D8F', 
     '#E9C46A', '#8AB17D', '#B5838D', '#E5989B', '#6D6875', 
@@ -175,7 +174,6 @@ comfortable_palette = [
     '#98C1D9', '#EE6C4D', '#293241', '#C6AC8F', '#5E548E'
 ]
 SECTOR_COLOR_MAP = {sector: comfortable_palette[i % len(comfortable_palette)] for i, sector in enumerate(sorted(all_sectors))}
-# -----------------------------------------------------------------------------
 
 tab_home, tab_stations, tab_dist, tab_all_trans = st.tabs([
     "🏠 الرئيسية (Dashboard)", 
@@ -202,6 +200,51 @@ with tab_home:
     with c1: metric_card("المحطات العامة", count_st, "إجمالي المحطات")
     with c2: metric_card("الموزعات", count_dst, "إجمالي الموزعات (517)")
     with c3: metric_card("المحولات (كل القطاعات)", count_trans, "إجمالي محولات الشركة", "card-total")
+
+    # ==========================================
+    # البار شارت المجمع الجديد (Bar Chart)
+    # ==========================================
+    st.markdown("---")
+    st.markdown("### 📈 توزيع أصول الشركة على مستوى القطاعات")
+    
+    summary_list = []
+    if df_st is not None:
+        summary_list.append(df_st['القطاع'].value_counts().rename('المحطات'))
+    if df_dst is not None:
+        summary_list.append(df_dst['القطاع'].value_counts().rename('الموزعات'))
+    if not df_trans.empty:
+        summary_list.append(df_trans['القطاع'].value_counts().rename('المحولات'))
+        
+    if summary_list:
+        # تجميع الداتا وتجهيزها للرسم
+        df_summary_all = pd.concat(summary_list, axis=1).fillna(0).reset_index()
+        df_summary_all.rename(columns={'index': 'القطاع'}, inplace=True)
+        # تحويل شكل الداتا عشان Plotly يفهمها صح في البار شارت
+        df_melted = df_summary_all.melt(id_vars='القطاع', var_name='نوع الأصل', value_name='العدد')
+        
+        # ألوان البار شارت المخصص للثلاث أنواع (أزرق للمحطات، برتقالي للموزعات، أخضر للمحولات)
+        asset_colors = {'المحطات': '#457B9D', 'الموزعات': '#F4A261', 'المحولات': '#2A9D8F'}
+        
+        fig_bar_main = px.bar(
+            df_melted, 
+            x='القطاع', 
+            y='العدد', 
+            color='نوع الأصل', 
+            barmode='group', # عشان العواميد تطلع جنب بعض مش فوق بعض
+            color_discrete_map=asset_colors,
+            text='العدد'
+        )
+        fig_bar_main.update_traces(textposition='outside')
+        fig_bar_main.update_layout(
+            xaxis_tickangle=-45, 
+            xaxis_title="", 
+            yaxis_title="عدد الأصول",
+            legend_title="نوع الأصل",
+            height=450,
+            margin=dict(t=20, b=100)
+        )
+        st.plotly_chart(fig_bar_main, use_container_width=True)
+    # ==========================================
 
     if not df_trans.empty:
         st.markdown("---")
@@ -252,7 +295,7 @@ with tab_home:
                     st.dataframe(df_missing_type[display_cols], use_container_width=True)
 
     st.markdown("---")
-    st.markdown("### 📈 الرسوم التوضيحية المجمعة")
+    st.markdown("### 🍩 الهياكل التنظيمية (Sunburst Charts)")
     row3_c1, row3_c2, row3_c3 = st.columns(3)
     with row3_c1:
         if df_st is not None: 
@@ -292,7 +335,7 @@ with tab_dist:
         st.dataframe(df_dst_summ, use_container_width=True)
 
 # -----------------------------------------------------------------------------
-# TAB 4: المحولات الشاملة (الديناميكية بالقطاع)
+# TAB 4: المحولات الشاملة
 # -----------------------------------------------------------------------------
 with tab_all_trans:
     if not df_trans.empty:
