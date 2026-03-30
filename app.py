@@ -201,51 +201,6 @@ with tab_home:
     with c2: metric_card("الموزعات", count_dst, "إجمالي الموزعات (517)")
     with c3: metric_card("المحولات (كل القطاعات)", count_trans, "إجمالي محولات الشركة", "card-total")
 
-    # ==========================================
-    # البار شارت المجمع الجديد (Bar Chart)
-    # ==========================================
-    st.markdown("---")
-    st.markdown("### 📈 توزيع أصول الشركة على مستوى القطاعات")
-    
-    summary_list = []
-    if df_st is not None:
-        summary_list.append(df_st['القطاع'].value_counts().rename('المحطات'))
-    if df_dst is not None:
-        summary_list.append(df_dst['القطاع'].value_counts().rename('الموزعات'))
-    if not df_trans.empty:
-        summary_list.append(df_trans['القطاع'].value_counts().rename('المحولات'))
-        
-    if summary_list:
-        # تجميع الداتا وتجهيزها للرسم
-        df_summary_all = pd.concat(summary_list, axis=1).fillna(0).reset_index()
-        df_summary_all.rename(columns={'index': 'القطاع'}, inplace=True)
-        # تحويل شكل الداتا عشان Plotly يفهمها صح في البار شارت
-        df_melted = df_summary_all.melt(id_vars='القطاع', var_name='نوع الأصل', value_name='العدد')
-        
-        # ألوان البار شارت المخصص للثلاث أنواع (أزرق للمحطات، برتقالي للموزعات، أخضر للمحولات)
-        asset_colors = {'المحطات': '#457B9D', 'الموزعات': '#F4A261', 'المحولات': '#2A9D8F'}
-        
-        fig_bar_main = px.bar(
-            df_melted, 
-            x='القطاع', 
-            y='العدد', 
-            color='نوع الأصل', 
-            barmode='group', # عشان العواميد تطلع جنب بعض مش فوق بعض
-            color_discrete_map=asset_colors,
-            text='العدد'
-        )
-        fig_bar_main.update_traces(textposition='outside')
-        fig_bar_main.update_layout(
-            xaxis_tickangle=-45, 
-            xaxis_title="", 
-            yaxis_title="عدد الأصول",
-            legend_title="نوع الأصل",
-            height=450,
-            margin=dict(t=20, b=100)
-        )
-        st.plotly_chart(fig_bar_main, use_container_width=True)
-    # ==========================================
-
     if not df_trans.empty:
         st.markdown("---")
         st.markdown("### 🧬 تفاصيل المحولات (على مستوى الشركة)")
@@ -306,6 +261,48 @@ with tab_home:
     with row3_c3:
         if not df_trans.empty: 
             render_safe_sunburst(df_trans, ['الملكية', 'النوع'], title="المحولات", color='النوع', color_discrete_map=COLOR_MAP)
+
+    # ==========================================
+    # البار شارت المجمع (Bar Chart) - تم نقله لنهاية الصفحة
+    # ==========================================
+    st.markdown("---")
+    st.markdown("### 📈 توزيع أصول الشركة على مستوى القطاعات")
+    
+    summary_list = []
+    if df_st is not None:
+        summary_list.append(df_st['القطاع'].value_counts().rename('المحطات'))
+    if df_dst is not None:
+        summary_list.append(df_dst['القطاع'].value_counts().rename('الموزعات'))
+    if not df_trans.empty:
+        summary_list.append(df_trans['القطاع'].value_counts().rename('المحولات'))
+        
+    if summary_list:
+        df_summary_all = pd.concat(summary_list, axis=1).fillna(0).reset_index()
+        df_summary_all.rename(columns={'index': 'القطاع'}, inplace=True)
+        df_melted = df_summary_all.melt(id_vars='القطاع', var_name='نوع الأصل', value_name='العدد')
+        
+        asset_colors = {'المحطات': '#457B9D', 'الموزعات': '#F4A261', 'المحولات': '#2A9D8F'}
+        
+        fig_bar_main = px.bar(
+            df_melted, 
+            x='القطاع', 
+            y='العدد', 
+            color='نوع الأصل', 
+            barmode='group', 
+            color_discrete_map=asset_colors,
+            text='العدد'
+        )
+        fig_bar_main.update_traces(textposition='outside')
+        fig_bar_main.update_layout(
+            xaxis_tickangle=-45, 
+            xaxis_title="", 
+            yaxis_title="عدد الأصول",
+            legend_title="نوع الأصل",
+            height=450,
+            margin=dict(t=20, b=100)
+        )
+        st.plotly_chart(fig_bar_main, use_container_width=True)
+    # ==========================================
 
 # -----------------------------------------------------------------------------
 # TAB 2 & 3
