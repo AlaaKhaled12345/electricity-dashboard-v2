@@ -23,18 +23,25 @@ st.markdown("""
     .metric-value { color: #2c3e50; font-size: 2.2rem; font-weight: 800; }
     .metric-sub { font-size: 0.9rem; color: #95a5a6; }
 
-    .card-company { border-right-color: #2980b9; }
-    .card-private { border-right-color: #c0392b; }
-    .card-total { border-right-color: #f39c12; }
-    .card-unknown { border-right-color: #e74c3c; background: linear-gradient(135deg, #ffffff 0%, #fdedec 100%); }
+    .card-company { border-right-color: #5FA8D3; }
+    .card-private { border-right-color: #E07A5F; }
+    .card-total { border-right-color: #F4A261; }
+    .card-unknown { border-right-color: #B5838D; background: linear-gradient(135deg, #ffffff 0%, #F8EDEB 100%); }
     
     h3 { color: #2E86C1; border-bottom: 2px solid #eee; padding-bottom: 10px; }
     .table-header { background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-right: 5px solid #2E86C1; margin-bottom: 15px; color: #2c3e50; font-weight: bold; font-size: 1.1rem; }
 </style>
 """, unsafe_allow_html=True)
 
-# ألوان أنواع المحولات
-COLOR_MAP = {'كشك': '#3498db', 'غرفة': '#e74c3c', 'معلق': '#f1c40f', 'هوائي': '#9b59b6', 'أخرى': '#95a5a6', 'غير محدد النوع': '#bdc3c7'}
+# ألوان مريحة وهادية جداً لأنواع المحولات
+COLOR_MAP = {
+    'كشك': '#5DADE2',         # أزرق سماوي هادي
+    'غرفة': '#F1948A',        # أحمر فاتح هادي
+    'معلق': '#F7DC6F',        # أصفر باستيل
+    'هوائي': '#BB8FCE',       # موف هادي
+    'أخرى': '#AAB7B8',        # رمادي مخضر
+    'غير محدد النوع': '#E5E7E9' # رمادي فاتح جداً
+}
 
 # ==========================================
 # 2. دوال المعالجة والتحميل (Backend Logic)
@@ -154,21 +161,20 @@ df_st = load_stations()
 df_dst, df_dst_summ = load_distributors()
 df_trans = load_all_transformers()
 
-# --- خريطة ألوان مبهجة (ميكس لزيز) للقطاعات ---
+# --- خريطة ألوان مريحة للعين (Soft & Pastel) للقطاعات ---
 all_sectors = set()
 if df_st is not None: all_sectors.update(df_st['القطاع'].dropna().unique())
 if df_dst is not None: all_sectors.update(df_dst['القطاع'].dropna().unique())
 if not df_trans.empty: all_sectors.update(df_trans['القطاع'].dropna().unique())
 
-# مجموعة ألوان مودرن وباستيل مبهجة
-cute_palette = [
-    '#FF9F43', '#0ABDE3', '#EE5253', '#10AC84', '#5F27CD', 
-    '#FF6B6B', '#48DBFB', '#1DD1A1', '#F368E0', '#FF9FF3', 
-    '#00D2D3', '#54A0FF', '#5EE7DF', '#B33771', '#D6A2E8',
-    '#FD7272', '#9AECDB', '#D63031', '#0984E3', '#00B894',
-    '#FDCB6E', '#E17055', '#6C5CE7', '#81ECEC', '#FAB1A0'
+# مجموعة ألوان مطفية وشيك جداً (Earthy & Pastel tones)
+comfortable_palette = [
+    '#457B9D', '#A8DADC', '#F4A261', '#E76F51', '#2A9D8F', 
+    '#E9C46A', '#8AB17D', '#B5838D', '#E5989B', '#6D6875', 
+    '#5FA8D3', '#F2CC8F', '#81B29A', '#E07A5F', '#3D5A80',
+    '#98C1D9', '#EE6C4D', '#293241', '#C6AC8F', '#5E548E'
 ]
-SECTOR_COLOR_MAP = {sector: cute_palette[i % len(cute_palette)] for i, sector in enumerate(sorted(all_sectors))}
+SECTOR_COLOR_MAP = {sector: comfortable_palette[i % len(comfortable_palette)] for i, sector in enumerate(sorted(all_sectors))}
 # -----------------------------------------------------------------------------
 
 tab_home, tab_stations, tab_dist, tab_all_trans = st.tabs([
