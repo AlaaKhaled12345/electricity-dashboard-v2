@@ -33,8 +33,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# خريطة ألوان خاصة بأنواع المحولات
-COLOR_MAP = {'كشك': '#2980b9', 'غرفة': '#c0392b', 'معلق': '#f1c40f', 'هوائي': '#8e44ad', 'أخرى': '#7f8c8d', 'غير محدد النوع': '#bdc3c7'}
+# ألوان أنواع المحولات
+COLOR_MAP = {'كشك': '#3498db', 'غرفة': '#e74c3c', 'معلق': '#f1c40f', 'هوائي': '#9b59b6', 'أخرى': '#95a5a6', 'غير محدد النوع': '#bdc3c7'}
 
 # ==========================================
 # 2. دوال المعالجة والتحميل (Backend Logic)
@@ -154,15 +154,21 @@ df_st = load_stations()
 df_dst, df_dst_summ = load_distributors()
 df_trans = load_all_transformers()
 
-# --- خريطة ألوان موحدة للقطاعات (لضمان تطابق ألوان Sunburst و Bar Charts) ---
+# --- خريطة ألوان مبهجة (ميكس لزيز) للقطاعات ---
 all_sectors = set()
 if df_st is not None: all_sectors.update(df_st['القطاع'].dropna().unique())
 if df_dst is not None: all_sectors.update(df_dst['القطاع'].dropna().unique())
 if not df_trans.empty: all_sectors.update(df_trans['القطاع'].dropna().unique())
 
-# نستخدم لوحة ألوان كبيرة من Plotly
-palette = px.colors.qualitative.Alphabet + px.colors.qualitative.Dark24
-SECTOR_COLOR_MAP = {sector: palette[i % len(palette)] for i, sector in enumerate(sorted(all_sectors))}
+# مجموعة ألوان مودرن وباستيل مبهجة
+cute_palette = [
+    '#FF9F43', '#0ABDE3', '#EE5253', '#10AC84', '#5F27CD', 
+    '#FF6B6B', '#48DBFB', '#1DD1A1', '#F368E0', '#FF9FF3', 
+    '#00D2D3', '#54A0FF', '#5EE7DF', '#B33771', '#D6A2E8',
+    '#FD7272', '#9AECDB', '#D63031', '#0984E3', '#00B894',
+    '#FDCB6E', '#E17055', '#6C5CE7', '#81ECEC', '#FAB1A0'
+]
+SECTOR_COLOR_MAP = {sector: cute_palette[i % len(cute_palette)] for i, sector in enumerate(sorted(all_sectors))}
 # -----------------------------------------------------------------------------
 
 tab_home, tab_stations, tab_dist, tab_all_trans = st.tabs([
@@ -271,11 +277,9 @@ with tab_dist:
     if df_dst is not None:
         cd1, cd2 = st.columns([1, 2])
         with cd1: 
-            # تم إضافة color_discrete_map للـ Sunburst
             render_safe_sunburst(df_dst, ['قطاع_للرسم', 'الهندسة', 'الموزع'], color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, height=700)
         with cd2:
             cnt_dst = df_dst.groupby(['القطاع', 'الهندسة']).size().reset_index(name='العدد').sort_values('العدد', ascending=False)
-            # تم إضافة color_discrete_map للـ Bar Chart
             fig_d_bar = px.bar(cnt_dst, x='الهندسة', y='العدد', color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, text='العدد')
             fig_d_bar.update_layout(xaxis=dict(tickangle=-90))
             st.plotly_chart(fig_d_bar, use_container_width=True)
