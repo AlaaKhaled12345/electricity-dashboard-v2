@@ -262,7 +262,7 @@ with tab_home:
         if not df_trans.empty: 
             render_safe_sunburst(df_trans, ['الملكية', 'النوع'], title="المحولات", color='النوع', color_discrete_map=COLOR_MAP)
 
-    # ==========================================
+   # ==========================================
     # البار شارت المجمع (Bar Chart) - تم نقله لنهاية الصفحة
     # ==========================================
     st.markdown("---")
@@ -292,18 +292,21 @@ with tab_home:
             color_discrete_map=asset_colors,
             text='العدد'
         )
-        fig_bar_main.update_traces(textposition='outside')
+        
+        # خليناها auto عشان لو العمود طويل واتقص، الرقم يفضل باين جواه
+        fig_bar_main.update_traces(textposition='auto') 
+        
         fig_bar_main.update_layout(
             xaxis_tickangle=-45, 
             xaxis_title="", 
             yaxis_title="عدد الأصول",
+            yaxis=dict(range=[0, 250]),  # 👈 السر هنا: حددنا أقصى رقم للـ Scale الرأسي بـ 250
             legend_title="نوع الأصل",
             height=450,
             margin=dict(t=20, b=100)
         )
         st.plotly_chart(fig_bar_main, use_container_width=True)
     # ==========================================
-
 # -----------------------------------------------------------------------------
 # TAB 2 & 3
 # -----------------------------------------------------------------------------
