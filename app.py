@@ -261,8 +261,7 @@ with tab_home:
     with row3_c3:
         if not df_trans.empty: 
             render_safe_sunburst(df_trans, ['الملكية', 'النوع'], title="المحولات", color='النوع', color_discrete_map=COLOR_MAP)
-
-   # ==========================================
+# ==========================================
     # البار شارت المجمع (Bar Chart) - تم نقله لنهاية الصفحة
     # ==========================================
     st.markdown("---")
@@ -293,17 +292,21 @@ with tab_home:
             text='العدد'
         )
         
-        # خليناها auto عشان لو العمود طويل واتقص، الرقم يفضل باين جواه
-        fig_bar_main.update_traces(textposition='auto') 
+        # 👈 التعديلات هنا: الأرقام فوق العواميد بخط واضح، ومنع قص الأرقام العالية
+        fig_bar_main.update_traces(
+            textposition='outside', 
+            cliponaxis=False,  
+            textfont=dict(size=14, color='#2c3e50') # تكبير الخط وتغيير لونه عشان يبقى بارز
+        )
         
+        # 👈 مسحنا تحديد الـ range عشان فرق الأطوال الحقيقي يبان، وزودنا طول الشارت نفسه
         fig_bar_main.update_layout(
             xaxis_tickangle=-45, 
             xaxis_title="", 
             yaxis_title="عدد الأصول",
-            yaxis=dict(range=[0, 250]),  # 👈 السر هنا: حددنا أقصى رقم للـ Scale الرأسي بـ 250
             legend_title="نوع الأصل",
-            height=450,
-            margin=dict(t=20, b=100)
+            height=600, # طولنا الشارت شوية عشان يدي مساحة للأطوال والعواميد تبان أحسن
+            margin=dict(t=60, b=100) # زودنا المساحة اللي فوق (t) عشان الأرقام العالية تاخد راحتها
         )
         st.plotly_chart(fig_bar_main, use_container_width=True)
     # ==========================================
