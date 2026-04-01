@@ -10,88 +10,60 @@ st.set_page_config(layout="wide", page_title="Dashboard Electricity", page_icon=
 
 st.markdown("""
 <style>
-    /* استدعاء خط Cairo بأوزان مختلفة */
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
     
-    /* تظبيط الخط الأساسي للصفحة كلها */
     html, body, [class*="css"] { 
         font-family: 'Cairo', sans-serif !important; 
         direction: rtl; 
         color: #1f2937; 
     }
     
-    /* تظبيط وتصغير العناوين الرئيسية والفرعية */
     h1, h2, h3, h4 { 
         font-family: 'Cairo', sans-serif !important;
         color: #1A5276 !important; 
-        font-weight: 800 !important; 
+        font-weight: 900 !important; 
     }
-    h1 { font-size: 1.6rem !important; }
-    h2 { font-size: 1.4rem !important; }
-    h3 { font-size: 1.2rem !important; border-bottom: 2px solid #eee; padding-bottom: 8px; margin-bottom: 15px; }
-    h4 { font-size: 1.1rem !important; }
+    h1 { font-size: 1.8rem !important; }
+    h2 { font-size: 1.6rem !important; }
+    h3 { font-size: 1.4rem !important; border-bottom: 2px solid #eee; padding-bottom: 8px; margin-bottom: 15px; }
+    h4 { font-size: 1.2rem !important; }
 
-    /* تظبيط خطوط التابات (Tabs) */
     .stTabs [data-baseweb="tab-list"] { gap: 10px; background-color: #ffffff; padding: 10px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .stTabs [data-baseweb="tab"] { 
         height: 55px; 
         font-family: 'Cairo', sans-serif !important;
-        font-size: 1rem !important; 
-        font-weight: 700 !important; 
+        font-size: 1.1rem !important; 
+        font-weight: 800 !important; 
         background-color: #f8f9fa; 
         border-radius: 10px; 
         color: #4a4a4a; 
         border: 1px solid #e9ecef; 
     }
-    .stTabs [aria-selected="true"] { background-color: #2E86C1 !important; color: white !important; font-weight: 800 !important; border: none; }
+    .stTabs [aria-selected="true"] { background-color: #2E86C1 !important; color: white !important; font-weight: 900 !important; border: none; }
 
-    /* تظبيط الكروت والأرقام */
     .metric-card { background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%); border-right: 6px solid #2E86C1; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; margin-bottom: 20px; transition: transform 0.3s ease; }
-    .metric-card:hover { transform: translateY(-5px); }
-    
-    .metric-title { color: #4b5563; font-size: 1.05rem; margin-bottom: 8px; font-weight: 700; }
-    .metric-value { color: #111827; font-size: 2.2rem; font-weight: 800; line-height: 1.2; }
-    .metric-sub { font-size: 0.95rem; color: #6b7280; font-weight: 600; }
+    .metric-title { color: #4b5563; font-size: 1.1rem; margin-bottom: 8px; font-weight: 800; }
+    .metric-value { color: #111827; font-size: 2.4rem; font-weight: 900; line-height: 1.2; }
+    .metric-sub { font-size: 1rem; color: #6b7280; font-weight: 700; }
 
-    /* ألوان حدود الكروت */
     .card-company { border-right-color: #5FA8D3; }
     .card-private { border-right-color: #E07A5F; }
     .card-total { border-right-color: #F4A261; }
     .card-unknown { border-right-color: #B5838D; background: linear-gradient(135deg, #ffffff 0%, #F8EDEB 100%); }
     
-    .table-header { background-color: #f8f9fa; padding: 12px; border-radius: 10px; border-right: 5px solid #2E86C1; margin-bottom: 12px; color: #1A5276; font-weight: 800; font-size: 1.1rem; }
+    .table-header { background-color: #f8f9fa; padding: 12px; border-radius: 10px; border-right: 5px solid #2E86C1; margin-bottom: 12px; color: #1A5276; font-weight: 900; font-size: 1.2rem; }
     
-    /* ========================================= */
-    /* التعديلات الجديدة (الجداول وقوائم الاختيار) */
-    /* ========================================= */
-    
-    /* 1. تكبير وتوضيح عناوين الجداول (رؤوس الأعمدة) */
-    [data-testid="stDataFrame"] th {
-        font-family: 'Cairo', sans-serif !important;
-        font-size: 16px !important;
-        font-weight: 800 !important;
-        color: #1A5276 !important;
-        background-color: #eef2f3 !important;
-    }
-    [data-testid="stDataFrame"] td {
-        font-family: 'Cairo', sans-serif !important;
-        font-size: 14.5px !important;
-        font-weight: 600 !important;
-    }
-    
-    /* 2. تكبير جملة "اختر القطاع..." (Selectbox Label) */
+    /* تكبير وتوضيح القائمة المنسدلة (اختر القطاع) */
     [data-testid="stSelectbox"] label p {
-        font-family: 'Cairo', sans-serif !important;
-        font-size: 1.3rem !important;
-        font-weight: 800 !important;
+        font-size: 1.4rem !important;
+        font-weight: 900 !important;
         color: #1A5276 !important;
     }
     
-    /* 3. تكبير الكلام داخل القائمة المنسدلة نفسها */
-    [data-baseweb="select"] {
-        font-family: 'Cairo', sans-serif !important;
-        font-size: 1.1rem !important;
-        font-weight: 700 !important;
+    div[data-baseweb="select"] > div {
+        font-size: 1.2rem !important;
+        font-weight: 800 !important;
+        color: #111 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -106,8 +78,31 @@ COLOR_MAP = {
 }
 
 # ==========================================
-# 2. دوال المعالجة والتحميل
+# 2. دوال المعالجة والتحميل والتنسيق
 # ==========================================
+
+# 📌 الدالة الجديدة لتنسيق الجداول وتكبير خطوطها
+def style_dataframe(df):
+    """تقوم هذه الدالة بإجبار الجداول على استخدام خطوط وألوان واضحة"""
+    styles = [
+        # تنسيق رؤوس الأعمدة (العناوين)
+        dict(selector="th", props=[
+            ("font-size", "18px"), 
+            ("font-weight", "900"), 
+            ("color", "#1A5276"), 
+            ("background-color", "#eef2f3"), 
+            ("text-align", "center"),
+            ("padding", "10px")
+        ]),
+        # تنسيق الخلايا العادية
+        dict(selector="td", props=[
+            ("font-size", "16px"), 
+            ("font-weight", "600"), 
+            ("text-align", "center"),
+            ("padding", "8px")
+        ])
+    ]
+    return df.style.set_table_styles(styles)
 
 def clean_sector_name(name):
     if pd.isna(name): return "قطاع غير محدد"
@@ -132,7 +127,7 @@ def render_safe_sunburst(df, path_cols, **kwargs):
         
     try:
         fig = px.sunburst(df_clean, path=path_cols, **kwargs)
-        fig.update_layout(font=dict(family="Cairo, sans-serif", size=13))
+        fig.update_layout(font=dict(family="Cairo, sans-serif", size=14)) # كبرت خط الرسمة
         if 'height' in kwargs and kwargs['height'] <= 400:
             fig.update_layout(margin=dict(t=0, l=0, r=0, b=0))
         st.plotly_chart(fig, use_container_width=True)
@@ -228,6 +223,11 @@ def load_all_transformers():
         st.error(f"⚠️ حدث خطأ داخلي أثناء قراءة بيانات المحولات: {e}")
         return pd.DataFrame()
 
+def get_columns_to_display(df, exclude_cols):
+    keywords = ['كود', 'رقم', 'اسم', 'محول']
+    id_columns = [col for col in df.columns if any(kw in str(col) for kw in keywords) and col not in exclude_cols]
+    return id_columns
+
 # ==========================================
 # 3. واجهة التطبيق
 # ==========================================
@@ -246,8 +246,7 @@ if not df_trans.empty: all_sectors.update(df_trans['القطاع'].dropna().uniq
 comfortable_palette = [
     '#457B9D', '#A8DADC', '#F4A261', '#E76F51', '#2A9D8F', 
     '#E9C46A', '#8AB17D', '#B5838D', '#E5989B', '#6D6875', 
-    '#5FA8D3', '#F2CC8F', '#81B29A', '#E07A5F', '#3D5A80',
-    '#98C1D9', '#EE6C4D', '#293241', '#C6AC8F', '#5E548E'
+    '#5FA8D3', '#F2CC8F', '#81B29A', '#E07A5F', '#3D5A80'
 ]
 SECTOR_COLOR_MAP = {sector: comfortable_palette[i % len(comfortable_palette)] for i, sector in enumerate(sorted(all_sectors))}
 
@@ -257,11 +256,6 @@ tab_home, tab_stations, tab_dist, tab_all_trans = st.tabs([
     "🔌 الموزعات (517)", 
     "⚡ المحولات الشاملة"
 ])
-
-def get_columns_to_display(df, exclude_cols):
-    keywords = ['كود', 'رقم', 'اسم', 'محول']
-    id_columns = [col for col in df.columns if any(kw in str(col) for kw in keywords) and col not in exclude_cols]
-    return id_columns
 
 # -----------------------------------------------------------------------------
 # TAB 1: الرئيسية
@@ -314,7 +308,8 @@ with tab_home:
                 with st.expander("🔍 عرض تفاصيل النواقص في الملكية فقط"):
                     id_cols = get_columns_to_display(df_missing_own, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
                     display_cols = [col for col in (['القطاع', 'الهندسة'] + id_cols + ['الملكية']) if col in df_missing_own.columns]
-                    st.dataframe(df_missing_own[display_cols], use_container_width=True)
+                    # 📌 تم تطبيق التنسيق هنا
+                    st.dataframe(style_dataframe(df_missing_own[display_cols]), use_container_width=True)
 
         with u2: 
             df_missing_type = df_trans[df_trans['النوع'] == 'غير محدد النوع']
@@ -323,7 +318,8 @@ with tab_home:
                 with st.expander("🔍 عرض تفاصيل النواقص في نوع المبنى فقط"):
                     id_cols = get_columns_to_display(df_missing_type, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
                     display_cols = [col for col in (['القطاع', 'الهندسة'] + id_cols + ['النوع']) if col in df_missing_type.columns]
-                    st.dataframe(df_missing_type[display_cols], use_container_width=True)
+                    # 📌 تم تطبيق التنسيق هنا
+                    st.dataframe(style_dataframe(df_missing_type[display_cols]), use_container_width=True)
 
     st.markdown("---")
     st.markdown("###  الهياكل التنظيمية (Sunburst Charts)")
@@ -368,7 +364,7 @@ with tab_home:
         )
         fig_bar_main.update_traces(textposition='outside')
         fig_bar_main.update_layout(
-            font=dict(family="Cairo, sans-serif", size=13),
+            font=dict(family="Cairo, sans-serif", size=14),
             xaxis_tickangle=-45, 
             xaxis_title="", 
             yaxis_title="عدد الأصول (Log Scale)",
@@ -390,9 +386,10 @@ with tab_stations:
             cnt_sec = df_st['القطاع'].value_counts().reset_index()
             cnt_sec.columns = ['القطاع', 'العدد']
             fig_st_bar = px.bar(cnt_sec, x='القطاع', y='العدد', color='القطاع', color_discrete_map=SECTOR_COLOR_MAP)
-            fig_st_bar.update_layout(font=dict(family="Cairo, sans-serif", size=13))
+            fig_st_bar.update_layout(font=dict(family="Cairo, sans-serif", size=14))
             st.plotly_chart(fig_st_bar, use_container_width=True)
-        st.dataframe(df_st, use_container_width=True)
+        # 📌 تم تطبيق التنسيق هنا
+        st.dataframe(style_dataframe(df_st), use_container_width=True)
 
 with tab_dist:
     if df_dst is not None:
@@ -402,9 +399,10 @@ with tab_dist:
         with cd2:
             cnt_dst = df_dst.groupby(['القطاع', 'الهندسة']).size().reset_index(name='العدد').sort_values('العدد', ascending=False)
             fig_d_bar = px.bar(cnt_dst, x='الهندسة', y='العدد', color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, text='العدد')
-            fig_d_bar.update_layout(font=dict(family="Cairo, sans-serif", size=13), xaxis=dict(tickangle=-90))
+            fig_d_bar.update_layout(font=dict(family="Cairo, sans-serif", size=14), xaxis=dict(tickangle=-90))
             st.plotly_chart(fig_d_bar, use_container_width=True)
-        st.dataframe(df_dst_summ, use_container_width=True)
+        # 📌 تم تطبيق التنسيق هنا
+        st.dataframe(style_dataframe(df_dst_summ), use_container_width=True)
 
 # -----------------------------------------------------------------------------
 # TAB 4: المحولات الشاملة
@@ -416,13 +414,11 @@ with tab_all_trans:
         all_sectors_list = sorted([s for s in df_trans['القطاع'].unique() if s != "قطاع غير محدد" and str(s) != 'nan'])
         selected_sec = st.selectbox("📌 اختر القطاع لعرض تفاصيله:", ["الكل"] + all_sectors_list)
         
-        # فلترة البيانات بناءً على القطاع المختار
         df_view = df_trans if selected_sec == "الكل" else df_trans[df_trans['القطاع'] == selected_sec]
         df_st_view = pd.DataFrame() if df_st is None else (df_st if selected_sec == "الكل" else df_st[df_st['القطاع'] == selected_sec])
         df_dst_view = pd.DataFrame() if df_dst is None else (df_dst if selected_sec == "الكل" else df_dst[df_dst['القطاع'] == selected_sec])
         
         if not df_view.empty:
-            # حساب الأرقام
             num_engs = df_view['الهندسة'].nunique()
             num_stations = len(df_st_view)
             num_distributors = len(df_dst_view)
@@ -431,17 +427,12 @@ with tab_all_trans:
             num_company = len(df_view[df_view['الملكية'] == 'ملك الشركة'])
             num_private = len(df_view[df_view['الملكية'] == 'ملك الغير'])
             
-            # عرض الكروت الأساسية
             c_v1, c_v2, c_v3, c_v4 = st.columns(4)
-            with c_v1: 
-                metric_card("عدد الهندسات", num_engs, "هندسة بالقطاع")
-            with c_v2: 
-                metric_card("المحطات العامة", num_stations, "محطة بالقطاع")
-            with c_v3: 
-                metric_card("الموزعات", num_distributors, "موزع بالقطاع")
+            with c_v1: metric_card("عدد الهندسات", num_engs, "هندسة بالقطاع")
+            with c_v2: metric_card("المحطات العامة", num_stations, "محطة بالقطاع")
+            with c_v3: metric_card("الموزعات", num_distributors, "موزع بالقطاع")
             with c_v4: 
                 metric_card("إجمالي المحولات", num_total_trans, "محول بالقطاع", "card-total")
-                # التفرع (لما تدوسي يفتح تفاصيل الملكية)
                 with st.expander("👇 اضغط لعرض تفاصيل ملكية المحولات"):
                     col_comp, col_priv = st.columns(2)
                     with col_comp: metric_card("ملك الشركة", num_company, "", "card-company")
@@ -449,7 +440,6 @@ with tab_all_trans:
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # عرض النواقص
             c_v5, c_v6 = st.columns(2)
             with c_v5: 
                 df_view_miss_own = df_view[df_view['الملكية'] == 'غير محدد الملكية']
@@ -458,7 +448,8 @@ with tab_all_trans:
                     with st.expander(f"🔍 عرض تفاصيل النواقص في الملكية بـ {selected_sec}"):
                         id_cols = get_columns_to_display(df_view_miss_own, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
                         display_cols = [col for col in (['الهندسة'] + id_cols + ['الملكية']) if col in df_view_miss_own.columns]
-                        st.dataframe(df_view_miss_own[display_cols], use_container_width=True)
+                        # 📌 تم تطبيق التنسيق هنا
+                        st.dataframe(style_dataframe(df_view_miss_own[display_cols]), use_container_width=True)
             
             with c_v6: 
                 df_view_miss_type = df_view[df_view['النوع'] == 'غير محدد النوع']
@@ -467,18 +458,19 @@ with tab_all_trans:
                     with st.expander(f"🔍 عرض تفاصيل النواقص في نوع المبنى بـ {selected_sec}"):
                         id_cols = get_columns_to_display(df_view_miss_type, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
                         display_cols = [col for col in (['الهندسة'] + id_cols + ['النوع']) if col in df_view_miss_type.columns]
-                        st.dataframe(df_view_miss_type[display_cols], use_container_width=True)
+                        # 📌 تم تطبيق التنسيق هنا
+                        st.dataframe(style_dataframe(df_view_miss_type[display_cols]), use_container_width=True)
             
             st.markdown("---")
             
-            # الجداول والرسومات
             col_data, col_charts = st.columns([1.2, 1])
             with col_data:
                 st.markdown("<div class='table-header'>📋 تفاصيل المحولات (النوع والملكية)</div>", unsafe_allow_html=True)
                 trans_grouped = df_view.groupby(['الهندسة', 'الملكية', 'النوع']).size().reset_index(name='العدد')
                 if not trans_grouped.empty:
                     pivot_trans = trans_grouped.pivot_table(index='الهندسة', columns=['الملكية', 'النوع'], values='العدد', fill_value=0).astype(int)
-                    st.dataframe(pivot_trans, use_container_width=True, height=400)
+                    # 📌 تم تطبيق التنسيق هنا
+                    st.dataframe(style_dataframe(pivot_trans), use_container_width=True, height=400)
                 
             with col_charts:
                 st.markdown("<div class='table-header'>📊 تحليل مرئي للقطاع</div>", unsafe_allow_html=True)
@@ -487,7 +479,7 @@ with tab_all_trans:
                 cnt_type_dyn = df_view['النوع'].value_counts().reset_index()
                 cnt_type_dyn.columns = ['النوع', 'العدد']
                 fig_bar_dyn = px.bar(cnt_type_dyn, x='النوع', y='العدد', color='النوع', color_discrete_map=COLOR_MAP, text='العدد', height=300)
-                fig_bar_dyn.update_layout(font=dict(family="Cairo, sans-serif", size=13))
+                fig_bar_dyn.update_layout(font=dict(family="Cairo, sans-serif", size=14))
                 st.plotly_chart(fig_bar_dyn, use_container_width=True)
         else:
             st.info("لا توجد بيانات متاحة لهذا القطاع.")
