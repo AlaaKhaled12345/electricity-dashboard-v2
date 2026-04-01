@@ -243,7 +243,7 @@ with tab_home:
 
     if not df_trans.empty:
         st.markdown("---")
-        st.markdown("### 🧬 تفاصيل المحولات (على مستوى الشركة)")
+        st.markdown("###  تفاصيل المحولات (على مستوى الشركة)")
         
         st.markdown("#### 🔹 الإجمالي الكلي للمحولات")
         t1, t2, t3 = st.columns(3)
@@ -290,7 +290,7 @@ with tab_home:
                     st.dataframe(df_missing_type[display_cols], use_container_width=True)
 
     st.markdown("---")
-    st.markdown("### 🍩 الهياكل التنظيمية (Sunburst Charts)")
+    st.markdown("###  الهياكل التنظيمية (Sunburst Charts)")
     row3_c1, row3_c2, row3_c3 = st.columns(3)
     with row3_c1:
         if df_st is not None: 
