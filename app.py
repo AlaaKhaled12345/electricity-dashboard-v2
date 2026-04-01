@@ -33,7 +33,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ألوان مريحة وهادية جداً لأنواع المحولات
 COLOR_MAP = {
     'كشك': '#5DADE2',         
     'غرفة': '#F1948A',        
@@ -124,15 +123,21 @@ def load_all_transformers():
         all_sheets = pd.read_excel(file_name, sheet_name=None)
         df = pd.concat(all_sheets.values(), ignore_index=True)
         
+        # 👈 الحل: إجبار العمود على التحول لنص صريح قبل معالجته
         if 'نوع المبني' in df.columns:
-            df['النوع'] = df['نوع المبني'].astype(str).str.strip()
-        else:
+            df['النوع'] = df['نوع المبني']
+        elif 'النوع' not in df.columns:
             df['النوع'] = 'غير محدد النوع'
             
+        df['النوع'] = df['النوع'].astype(str).str.strip() # تحويل شامل للنصوص
         df['النوع'] = df['النوع'].apply(lambda x: 'غير محدد النوع' if x in ['nan', 'None', ''] else ('معلق' if 'معلق' in x or 'هوائي' in x else ('كشك' if 'كشك' in x else ('غرفة' if 'غرف' in x else 'أخرى'))))
         
-        df['القطاع'] = df['القطاع'].apply(clean_sector_name)
+        # 👈 تأمين عمود الملكية بنفس الطريقة
+        if 'الملكية' not in df.columns:
+            df['الملكية'] = 'غير محدد الملكية'
         df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'غير محدد الملكية'))
+        
+        df['القطاع'] = df['القطاع'].apply(clean_sector_name)
         
         if 'الهندسة' not in df.columns:
             df['الهندسة'] = 'هندسة غير محددة'
@@ -149,7 +154,6 @@ def load_all_transformers():
                 
         return df
     except Exception as e:
-        # 👈 التعديل هنا: طبع رسالة الخطأ على الشاشة بدل ما يخفيها
         st.error(f"⚠️ ظهر خطأ أثناء قراءة ملف المحولات: {e}")
         return pd.DataFrame()
 
@@ -263,9 +267,7 @@ with tab_home:
     with row3_c3:
         if not df_trans.empty: 
             render_safe_sunburst(df_trans, ['الملكية', 'النوع'], title="المحولات", color='النوع', color_discrete_map=COLOR_MAP)
-# ==========================================
-    # البار شارت المجمع (Bar Chart) - تم نقله لنهاية الصفحة
-    # ==========================================
+
     st.markdown("---")
     st.markdown("### 📈 توزيع أصول الشركة على مستوى القطاعات")
     
@@ -309,7 +311,7 @@ with tab_home:
             margin=dict(t=60, b=100) 
         )
         st.plotly_chart(fig_bar_main, use_container_width=True)
-    # ==========================================
+
 # -----------------------------------------------------------------------------
 # TAB 2 & 3
 # -----------------------------------------------------------------------------
