@@ -23,20 +23,28 @@ st.markdown("""
     .metric-value { color: #2c3e50; font-size: 2.2rem; font-weight: 800; }
     .metric-sub { font-size: 0.9rem; color: #95a5a6; }
 
-    .card-company { border-right-color: #2980b9; }
-    .card-private { border-right-color: #c0392b; }
-    .card-total { border-right-color: #f39c12; }
-    .card-unknown { border-right-color: #e74c3c; background: linear-gradient(135deg, #ffffff 0%, #fdedec 100%); }
+    .card-company { border-right-color: #5FA8D3; }
+    .card-private { border-right-color: #E07A5F; }
+    .card-total { border-right-color: #F4A261; }
+    .card-unknown { border-right-color: #B5838D; background: linear-gradient(135deg, #ffffff 0%, #F8EDEB 100%); }
     
     h3 { color: #2E86C1; border-bottom: 2px solid #eee; padding-bottom: 10px; }
     .table-header { background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-right: 5px solid #2E86C1; margin-bottom: 15px; color: #2c3e50; font-weight: bold; font-size: 1.1rem; }
 </style>
 """, unsafe_allow_html=True)
 
-COLOR_MAP = {'كشك': '#2980b9', 'غرفة': '#c0392b', 'معلق': '#f1c40f', 'هوائي': '#8e44ad', 'أخرى': '#7f8c8d', 'غير محدد': '#bdc3c7'}
+# ألوان مريحة وهادية جداً لأنواع المحولات
+COLOR_MAP = {
+    'كشك': '#5DADE2',         
+    'غرفة': '#F1948A',        
+    'معلق': '#F7DC6F',        
+    'هوائي': '#BB8FCE',       
+    'أخرى': '#AAB7B8',        
+    'غير محدد النوع': '#E5E7E9' 
+}
 
 # ==========================================
-# 2. دوال المعالجة والتحميل (Backend Logic)
+# 2. دوال المعالجة والتحميل
 # ==========================================
 
 def clean_sector_name(name):
@@ -56,8 +64,9 @@ def metric_card(title, value, subtitle="", style_class=""):
 def render_safe_sunburst(df, path_cols, **kwargs):
     df_clean = df.copy()
     for col in path_cols:
-        df_clean[col] = df_clean[col].astype(str).replace(['nan', 'None', 'NaN', 'NaT', ''], 'غير محدد')
-        df_clean[col] = df_clean[col].apply(lambda x: 'غير محدد' if not x.strip() else x.strip())
+        if col in df_clean.columns:
+            df_clean[col] = df_clean[col].astype(str).replace(['nan', 'None', 'NaN', 'NaT', ''], 'غير محدد')
+            df_clean[col] = df_clean[col].apply(lambda x: 'غير محدد' if not x.strip() else x.strip())
         
     try:
         fig = px.sunburst(df_clean, path=path_cols, **kwargs)
@@ -83,26 +92,20 @@ def load_distributors():
     files = [f for f in os.listdir('.') if "517" in f and f.endswith('.xlsx')]
     if not files: return None, None
     try:
-        # قراءة أول 4 أعمدة من ملف الموزعات
         df = pd.read_excel(files[0]).iloc[:, [1, 2, 3, 4]]
         df.columns = ['القطاع', 'الهندسة', 'مسلسل', 'الموزع']
         
-        # 1. الضربة القاضية لصفوف "الإجمالي": مسح أي صف يحتوي على كلمة إجمالي في أي خلية قبل العد
         mask_total = df.astype(str).apply(lambda x: x.str.contains('إجمالي|اجمالي|الإجمالي|الاجمالي|الموزع', na=False)).any(axis=1)
         df = df[~mask_total]
         
-        # 2. ملء الخلايا المدمجة للقطاعات والهندسات فقط 
         df[['القطاع', 'الهندسة']] = df[['القطاع', 'الهندسة']].ffill()
         
-        # 3. التأكد من تنظيف عمود الموزع ومسح الفراغات
         df['الموزع'] = df['الموزع'].astype(str).str.strip()
         df = df[~df['الموزع'].isin(['nan', 'None', '', 'NaN'])]
         df = df.dropna(subset=['الموزع'])
         
-        # 4. تنظيف وتوحيد أسماء القطاعات
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
         
-        # تجميع البيانات
         eng_counts = df.groupby('القطاع')['الهندسة'].nunique()
         df['قطاع_للرسم'] = df['القطاع'].apply(lambda x: f"{x} (هندسات: {eng_counts.get(x, 0)})")
         summary = df.groupby('القطاع').agg({'الهندسة': 'nunique', 'الموزع': 'count'}).reset_index()
@@ -124,12 +127,12 @@ def load_all_transformers():
         if 'نوع المبني' in df.columns:
             df['النوع'] = df['نوع المبني'].astype(str).str.strip()
         else:
-            df['النوع'] = 'غير محدد'
+            df['النوع'] = 'غير محدد النوع'
             
-        df['النوع'] = df['النوع'].apply(lambda x: 'غير محدد' if x in ['nan', 'None', ''] else ('معلق' if 'معلق' in x or 'هوائي' in x else ('كشك' if 'كشك' in x else ('غرفة' if 'غرف' in x else 'أخرى'))))
+        df['النوع'] = df['النوع'].apply(lambda x: 'غير محدد النوع' if x in ['nan', 'None', ''] else ('معلق' if 'معلق' in x or 'هوائي' in x else ('كشك' if 'كشك' in x else ('غرفة' if 'غرف' in x else 'أخرى'))))
         
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
-        df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'غير محدد'))
+        df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'غير محدد الملكية'))
         
         if 'الهندسة' not in df.columns:
             df['الهندسة'] = 'هندسة غير محددة'
@@ -158,12 +161,31 @@ df_st = load_stations()
 df_dst, df_dst_summ = load_distributors()
 df_trans = load_all_transformers()
 
+# ألوان القطاعات
+all_sectors = set()
+if df_st is not None: all_sectors.update(df_st['القطاع'].dropna().unique())
+if df_dst is not None: all_sectors.update(df_dst['القطاع'].dropna().unique())
+if not df_trans.empty: all_sectors.update(df_trans['القطاع'].dropna().unique())
+
+comfortable_palette = [
+    '#457B9D', '#A8DADC', '#F4A261', '#E76F51', '#2A9D8F', 
+    '#E9C46A', '#8AB17D', '#B5838D', '#E5989B', '#6D6875', 
+    '#5FA8D3', '#F2CC8F', '#81B29A', '#E07A5F', '#3D5A80',
+    '#98C1D9', '#EE6C4D', '#293241', '#C6AC8F', '#5E548E'
+]
+SECTOR_COLOR_MAP = {sector: comfortable_palette[i % len(comfortable_palette)] for i, sector in enumerate(sorted(all_sectors))}
+
 tab_home, tab_stations, tab_dist, tab_all_trans = st.tabs([
     "🏠 الرئيسية (Dashboard)", 
     "🏭 المحطات العامة",
     "🔌 الموزعات (517)", 
     "⚡ المحولات الشاملة"
 ])
+
+def get_columns_to_display(df, exclude_cols):
+    keywords = ['كود', 'رقم', 'اسم', 'محول']
+    id_columns = [col for col in df.columns if any(kw in col for kw in keywords) and col not in exclude_cols]
+    return id_columns
 
 # -----------------------------------------------------------------------------
 # TAB 1: الرئيسية
@@ -208,21 +230,79 @@ with tab_home:
 
         st.markdown("#### ⚠️ بيانات غير محددة (نواقص الإكسيل)")
         u1, u2 = st.columns(2)
-        with u1: metric_card("ملكية غير محددة", len(df_trans[df_trans['الملكية'] == 'غير محدد']), "خلايا فارغة", "card-unknown")
-        with u2: metric_card("نوع مبنى غير محدد", len(df_trans[df_trans['النوع'] == 'غير محدد']), "خلايا فارغة", "card-unknown")
+        
+        with u1: 
+            df_missing_own = df_trans[df_trans['الملكية'] == 'غير محدد الملكية']
+            metric_card("ملكية غير محددة", len(df_missing_own), "خلايا فارغة", "card-unknown")
+            if not df_missing_own.empty:
+                with st.expander("🔍 عرض تفاصيل النواقص في الملكية فقط"):
+                    id_cols = get_columns_to_display(df_missing_own, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
+                    display_cols = [col for col in (['القطاع', 'الهندسة'] + id_cols + ['الملكية']) if col in df_missing_own.columns]
+                    st.dataframe(df_missing_own[display_cols], use_container_width=True)
+
+        with u2: 
+            df_missing_type = df_trans[df_trans['النوع'] == 'غير محدد النوع']
+            metric_card("نوع مبنى غير محدد", len(df_missing_type), "خلايا فارغة", "card-unknown")
+            if not df_missing_type.empty:
+                with st.expander("🔍 عرض تفاصيل النواقص في نوع المبنى فقط"):
+                    id_cols = get_columns_to_display(df_missing_type, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
+                    display_cols = [col for col in (['القطاع', 'الهندسة'] + id_cols + ['النوع']) if col in df_missing_type.columns]
+                    st.dataframe(df_missing_type[display_cols], use_container_width=True)
 
     st.markdown("---")
-    st.markdown("### 📈 الرسوم التوضيحية المجمعة")
+    st.markdown("### 🍩 الهياكل التنظيمية (Sunburst Charts)")
     row3_c1, row3_c2, row3_c3 = st.columns(3)
     with row3_c1:
         if df_st is not None: 
-            render_safe_sunburst(df_st, ['القطاع', 'المحطة'], title="المحطات العامة")
+            render_safe_sunburst(df_st, ['القطاع', 'المحطة'], color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, title="المحطات العامة")
     with row3_c2:
         if df_dst is not None: 
-            render_safe_sunburst(df_dst, ['القطاع', 'الهندسة'], title="الموزعات")
+            render_safe_sunburst(df_dst, ['القطاع', 'الهندسة'], color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, title="الموزعات")
     with row3_c3:
         if not df_trans.empty: 
             render_safe_sunburst(df_trans, ['الملكية', 'النوع'], title="المحولات", color='النوع', color_discrete_map=COLOR_MAP)
+
+    # ==========================================
+    # البار شارت المجمع (Bar Chart) - تم نقله لنهاية الصفحة
+    # ==========================================
+    st.markdown("---")
+    st.markdown("### 📈 توزيع أصول الشركة على مستوى القطاعات")
+    
+    summary_list = []
+    if df_st is not None:
+        summary_list.append(df_st['القطاع'].value_counts().rename('المحطات'))
+    if df_dst is not None:
+        summary_list.append(df_dst['القطاع'].value_counts().rename('الموزعات'))
+    if not df_trans.empty:
+        summary_list.append(df_trans['القطاع'].value_counts().rename('المحولات'))
+        
+    if summary_list:
+        df_summary_all = pd.concat(summary_list, axis=1).fillna(0).reset_index()
+        df_summary_all.rename(columns={'index': 'القطاع'}, inplace=True)
+        df_melted = df_summary_all.melt(id_vars='القطاع', var_name='نوع الأصل', value_name='العدد')
+        
+        asset_colors = {'المحطات': '#457B9D', 'الموزعات': '#F4A261', 'المحولات': '#2A9D8F'}
+        
+        fig_bar_main = px.bar(
+            df_melted, 
+            x='القطاع', 
+            y='العدد', 
+            color='نوع الأصل', 
+            barmode='group', 
+            color_discrete_map=asset_colors,
+            text='العدد'
+        )
+        fig_bar_main.update_traces(textposition='outside')
+        fig_bar_main.update_layout(
+            xaxis_tickangle=-45, 
+            xaxis_title="", 
+            yaxis_title="عدد الأصول",
+            legend_title="نوع الأصل",
+            height=450,
+            margin=dict(t=20, b=100)
+        )
+        st.plotly_chart(fig_bar_main, use_container_width=True)
+    # ==========================================
 
 # -----------------------------------------------------------------------------
 # TAB 2 & 3
@@ -231,34 +311,35 @@ with tab_stations:
     if df_st is not None:
         cs1, cs2 = st.columns([3, 1])
         with cs1: 
-            render_safe_sunburst(df_st, ['القطاع', 'المحطة'], values='العدد', height=700)
+            render_safe_sunburst(df_st, ['القطاع', 'المحطة'], values='العدد', color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, height=700)
         with cs2:
             cnt_sec = df_st['القطاع'].value_counts().reset_index()
             cnt_sec.columns = ['القطاع', 'العدد']
-            st.plotly_chart(px.bar(cnt_sec, x='القطاع', y='العدد', color='القطاع'), use_container_width=True)
+            fig_st_bar = px.bar(cnt_sec, x='القطاع', y='العدد', color='القطاع', color_discrete_map=SECTOR_COLOR_MAP)
+            st.plotly_chart(fig_st_bar, use_container_width=True)
         st.dataframe(df_st, use_container_width=True)
 
 with tab_dist:
     if df_dst is not None:
         cd1, cd2 = st.columns([1, 2])
         with cd1: 
-            render_safe_sunburst(df_dst, ['قطاع_للرسم', 'الهندسة', 'الموزع'], color='القطاع', height=700)
+            render_safe_sunburst(df_dst, ['قطاع_للرسم', 'الهندسة', 'الموزع'], color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, height=700)
         with cd2:
             cnt_dst = df_dst.groupby(['القطاع', 'الهندسة']).size().reset_index(name='العدد').sort_values('العدد', ascending=False)
-            fig_d_bar = px.bar(cnt_dst, x='الهندسة', y='العدد', color='القطاع', text='العدد')
+            fig_d_bar = px.bar(cnt_dst, x='الهندسة', y='العدد', color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, text='العدد')
             fig_d_bar.update_layout(xaxis=dict(tickangle=-90))
             st.plotly_chart(fig_d_bar, use_container_width=True)
         st.dataframe(df_dst_summ, use_container_width=True)
 
 # -----------------------------------------------------------------------------
-# TAB 4: المحولات الشاملة (الديناميكية بالقطاع)
+# TAB 4: المحولات الشاملة
 # -----------------------------------------------------------------------------
 with tab_all_trans:
     if not df_trans.empty:
         st.markdown("### 🎯 استعلام ديناميكي لمحولات القطاعات")
         
-        all_sectors = sorted([s for s in df_trans['القطاع'].unique() if s != "قطاع غير محدد" and str(s) != 'nan'])
-        selected_sec = st.selectbox("📌 اختر القطاع لعرض محولاته:", ["الكل"] + all_sectors)
+        all_sectors_list = sorted([s for s in df_trans['القطاع'].unique() if s != "قطاع غير محدد" and str(s) != 'nan'])
+        selected_sec = st.selectbox("📌 اختر القطاع لعرض محولاته:", ["الكل"] + all_sectors_list)
         
         df_view = df_trans if selected_sec == "الكل" else df_trans[df_trans['القطاع'] == selected_sec]
         
@@ -268,9 +349,6 @@ with tab_all_trans:
             num_company = len(df_view[df_view['الملكية'] == 'ملك الشركة'])
             num_private = len(df_view[df_view['الملكية'] == 'ملك الغير'])
             
-            num_unspecified_own = len(df_view[df_view['الملكية'] == 'غير محدد'])
-            num_unspecified_type = len(df_view[df_view['النوع'] == 'غير محدد'])
-            
             c_v1, c_v2, c_v3, c_v4 = st.columns(4)
             with c_v1: metric_card("عدد الهندسات", num_engs, "هندسة بالقطاع")
             with c_v2: metric_card("إجمالي المحولات", num_total_trans, "محول")
@@ -278,8 +356,24 @@ with tab_all_trans:
             with c_v4: metric_card("ملك الغير", num_private, "محول", "card-private")
             
             c_v5, c_v6 = st.columns(2)
-            with c_v5: metric_card("ملكية غير محددة", num_unspecified_own, "محولات بدون ملكية", "card-unknown")
-            with c_v6: metric_card("نوع غير محدد", num_unspecified_type, "محولات بدون نوع مبنى", "card-unknown")
+            
+            with c_v5: 
+                df_view_miss_own = df_view[df_view['الملكية'] == 'غير محدد الملكية']
+                metric_card("ملكية غير محددة", len(df_view_miss_own), "محولات بدون ملكية", "card-unknown")
+                if not df_view_miss_own.empty:
+                    with st.expander(f"🔍 عرض تفاصيل النواقص في الملكية بـ {selected_sec}"):
+                        id_cols = get_columns_to_display(df_view_miss_own, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
+                        display_cols = [col for col in (['الهندسة'] + id_cols + ['الملكية']) if col in df_view_miss_own.columns]
+                        st.dataframe(df_view_miss_own[display_cols], use_container_width=True)
+            
+            with c_v6: 
+                df_view_miss_type = df_view[df_view['النوع'] == 'غير محدد النوع']
+                metric_card("نوع غير محدد", len(df_view_miss_type), "محولات بدون نوع مبنى", "card-unknown")
+                if not df_view_miss_type.empty:
+                    with st.expander(f"🔍 عرض تفاصيل النواقص في نوع المبنى بـ {selected_sec}"):
+                        id_cols = get_columns_to_display(df_view_miss_type, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
+                        display_cols = [col for col in (['الهندسة'] + id_cols + ['النوع']) if col in df_view_miss_type.columns]
+                        st.dataframe(df_view_miss_type[display_cols], use_container_width=True)
             
             st.markdown("---")
             
