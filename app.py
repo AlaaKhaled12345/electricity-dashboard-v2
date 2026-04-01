@@ -374,7 +374,7 @@ with tab_dist:
 # -----------------------------------------------------------------------------
 with tab_all_trans:
     if not df_trans.empty:
-        st.markdown("### 🎯 استعلام ديناميكي لبيانات القطاعات")
+        st.markdown("###  استعلام ديناميكي لبيانات القطاعات")
         
         all_sectors_list = sorted([s for s in df_trans['القطاع'].unique() if s != "قطاع غير محدد" and str(s) != 'nan'])
         selected_sec = st.selectbox("📌 اختر القطاع لعرض تفاصيله:", ["الكل"] + all_sectors_list)
@@ -406,7 +406,7 @@ with tab_all_trans:
             with c_v4: 
                 metric_card("إجمالي المحولات", num_total_trans, "محول بالقطاع", "card-total")
                 # التفرع (لما تدوسي يفتح تفاصيل الملكية)
-                with st.expander("👇 اضغط لعرض تفاصيل ملكية المحولات"):
+                with st.expander("👇 لعرض تفاصيل ملكية المحولات"):
                     col_comp, col_priv = st.columns(2)
                     with col_comp: metric_card("ملك الشركة", num_company, "", "card-company")
                     with col_priv: metric_card("ملك الغير", num_private, "", "card-private")
