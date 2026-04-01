@@ -124,16 +124,29 @@ def load_all_transformers():
         all_sheets = pd.read_excel(file_name, sheet_name=None)
         df = pd.concat(all_sheets.values(), ignore_index=True)
         
+        # 1. تنظيف أسماء الأعمدة من أي مسافات زائدة
+        df.columns = df.columns.astype(str).str.strip()
+        
+        # 2. التأكد من وجود الأعمدة قبل التعديل عليها
         if 'نوع المبني' in df.columns:
             df['النوع'] = df['نوع المبني'].astype(str).str.strip()
+        elif 'النوع' in df.columns:
+            df['النوع'] = df['النوع'].astype(str).str.strip()
         else:
             df['النوع'] = 'غير محدد النوع'
             
         df['النوع'] = df['النوع'].apply(lambda x: 'غير محدد النوع' if x in ['nan', 'None', ''] else ('معلق' if 'معلق' in x or 'هوائي' in x else ('كشك' if 'كشك' in x else ('غرفة' if 'غرف' in x else 'أخرى'))))
         
-        df['القطاع'] = df['القطاع'].apply(clean_sector_name)
-        df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'غير محدد الملكية'))
-        
+        if 'القطاع' in df.columns:
+            df['القطاع'] = df['القطاع'].apply(clean_sector_name)
+        else:
+            df['القطاع'] = 'قطاع غير محدد'
+            
+        if 'الملكية' in df.columns:
+            df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'غير محدد الملكية'))
+        else:
+            df['الملكية'] = 'غير محدد الملكية'
+            
         if 'الهندسة' not in df.columns:
             df['الهندسة'] = 'هندسة غير محددة'
         else:
@@ -149,6 +162,7 @@ def load_all_transformers():
                 
         return df
     except Exception as e:
+        print(f"Error loading Transformers_All: {e}")
         return pd.DataFrame()
 
 # ==========================================
@@ -182,9 +196,10 @@ tab_home, tab_stations, tab_dist, tab_all_trans = st.tabs([
     "⚡ المحولات الشاملة"
 ])
 
+# تم تعديل هذه الدالة لمنع خطأ الـ float
 def get_columns_to_display(df, exclude_cols):
     keywords = ['كود', 'رقم', 'اسم', 'محول']
-    id_columns = [col for col in df.columns if any(kw in col for kw in keywords) and col not in exclude_cols]
+    id_columns = [col for col in df.columns if any(kw in str(col) for kw in keywords) and col not in exclude_cols]
     return id_columns
 
 # -----------------------------------------------------------------------------
@@ -262,9 +277,6 @@ with tab_home:
         if not df_trans.empty: 
             render_safe_sunburst(df_trans, ['الملكية', 'النوع'], title="المحولات", color='النوع', color_discrete_map=COLOR_MAP)
 
-    # ==========================================
-    # البار شارت المجمع (Bar Chart) - تم نقله لنهاية الصفحة
-    # ==========================================
     st.markdown("---")
     st.markdown("### 📈 توزيع أصول الشركة على مستوى القطاعات")
     
@@ -302,7 +314,6 @@ with tab_home:
             margin=dict(t=20, b=100)
         )
         st.plotly_chart(fig_bar_main, use_container_width=True)
-    # ==========================================
 
 # -----------------------------------------------------------------------------
 # TAB 2 & 3
