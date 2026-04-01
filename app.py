@@ -10,31 +10,34 @@ st.set_page_config(layout="wide", page_title="Dashboard Electricity", page_icon=
 
 st.markdown("""
 <style>
-    /* استدعاء خط Cairo بأوزان مختلفة عشان الوضوح */
+    /* استدعاء خط Cairo بأوزان مختلفة */
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
     
     /* تظبيط الخط الأساسي للصفحة كلها */
     html, body, [class*="css"] { 
         font-family: 'Cairo', sans-serif !important; 
-        font-size: 16px !important; 
+        font-size: 15px !important; 
         direction: rtl; 
         color: #1f2937; 
     }
     
-    /* تظبيط العناوين الرئيسية والفرعية */
+    /* تظبيط وتصغير العناوين الرئيسية والفرعية */
     h1, h2, h3, h4 { 
         font-family: 'Cairo', sans-serif !important;
         color: #1A5276 !important; 
         font-weight: 800 !important; 
     }
-    h3 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
+    h1 { font-size: 1.6rem !important; }
+    h2 { font-size: 1.4rem !important; }
+    h3 { font-size: 1.2rem !important; border-bottom: 2px solid #eee; padding-bottom: 8px; margin-bottom: 15px; }
+    h4 { font-size: 1.1rem !important; }
 
     /* تظبيط خطوط التابات (Tabs) */
     .stTabs [data-baseweb="tab-list"] { gap: 10px; background-color: #ffffff; padding: 10px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .stTabs [data-baseweb="tab"] { 
         height: 55px; 
         font-family: 'Cairo', sans-serif !important;
-        font-size: 1.1rem !important; 
+        font-size: 1rem !important; 
         font-weight: 700 !important; 
         background-color: #f8f9fa; 
         border-radius: 10px; 
@@ -47,9 +50,10 @@ st.markdown("""
     .metric-card { background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%); border-right: 6px solid #2E86C1; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; margin-bottom: 20px; transition: transform 0.3s ease; }
     .metric-card:hover { transform: translateY(-5px); }
     
-    .metric-title { color: #4b5563; font-size: 1.2rem; margin-bottom: 10px; font-weight: 700; }
-    .metric-value { color: #111827; font-size: 2.6rem; font-weight: 800; line-height: 1.2; }
-    .metric-sub { font-size: 1rem; color: #6b7280; font-weight: 600; }
+    /* تصغير عنوان الكارت */
+    .metric-title { color: #4b5563; font-size: 1.05rem; margin-bottom: 8px; font-weight: 700; }
+    .metric-value { color: #111827; font-size: 2.2rem; font-weight: 800; line-height: 1.2; }
+    .metric-sub { font-size: 0.95rem; color: #6b7280; font-weight: 600; }
 
     /* ألوان حدود الكروت */
     .card-company { border-right-color: #5FA8D3; }
@@ -57,13 +61,13 @@ st.markdown("""
     .card-total { border-right-color: #F4A261; }
     .card-unknown { border-right-color: #B5838D; background: linear-gradient(135deg, #ffffff 0%, #F8EDEB 100%); }
     
-    /* تظبيط عناوين الجداول */
-    .table-header { background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-right: 5px solid #2E86C1; margin-bottom: 15px; color: #1A5276; font-weight: 800; font-size: 1.2rem; }
+    /* تصغير عناوين الجداول */
+    .table-header { background-color: #f8f9fa; padding: 12px; border-radius: 10px; border-right: 5px solid #2E86C1; margin-bottom: 12px; color: #1A5276; font-weight: 800; font-size: 1.1rem; }
     
     /* تظبيط خطوط الجداول نفسها */
     [data-testid="stDataFrame"] {
         font-family: 'Cairo', sans-serif !important;
-        font-size: 15px !important;
+        font-size: 14px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -105,7 +109,7 @@ def render_safe_sunburst(df, path_cols, **kwargs):
     try:
         fig = px.sunburst(df_clean, path=path_cols, **kwargs)
         # تظبيط الفونت جوه الرسمة
-        fig.update_layout(font=dict(family="Cairo, sans-serif", size=14))
+        fig.update_layout(font=dict(family="Cairo, sans-serif", size=13))
         if 'height' in kwargs and kwargs['height'] <= 400:
             fig.update_layout(margin=dict(t=0, l=0, r=0, b=0))
         st.plotly_chart(fig, use_container_width=True)
@@ -341,7 +345,7 @@ with tab_home:
         )
         fig_bar_main.update_traces(textposition='outside')
         fig_bar_main.update_layout(
-            font=dict(family="Cairo, sans-serif", size=14),
+            font=dict(family="Cairo, sans-serif", size=13),
             xaxis_tickangle=-45, 
             xaxis_title="", 
             yaxis_title="عدد الأصول (Log Scale)",
@@ -363,7 +367,7 @@ with tab_stations:
             cnt_sec = df_st['القطاع'].value_counts().reset_index()
             cnt_sec.columns = ['القطاع', 'العدد']
             fig_st_bar = px.bar(cnt_sec, x='القطاع', y='العدد', color='القطاع', color_discrete_map=SECTOR_COLOR_MAP)
-            fig_st_bar.update_layout(font=dict(family="Cairo, sans-serif", size=14))
+            fig_st_bar.update_layout(font=dict(family="Cairo, sans-serif", size=13))
             st.plotly_chart(fig_st_bar, use_container_width=True)
         st.dataframe(df_st, use_container_width=True)
 
@@ -375,7 +379,7 @@ with tab_dist:
         with cd2:
             cnt_dst = df_dst.groupby(['القطاع', 'الهندسة']).size().reset_index(name='العدد').sort_values('العدد', ascending=False)
             fig_d_bar = px.bar(cnt_dst, x='الهندسة', y='العدد', color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, text='العدد')
-            fig_d_bar.update_layout(font=dict(family="Cairo, sans-serif", size=14), xaxis=dict(tickangle=-90))
+            fig_d_bar.update_layout(font=dict(family="Cairo, sans-serif", size=13), xaxis=dict(tickangle=-90))
             st.plotly_chart(fig_d_bar, use_container_width=True)
         st.dataframe(df_dst_summ, use_container_width=True)
 
@@ -460,7 +464,7 @@ with tab_all_trans:
                 cnt_type_dyn = df_view['النوع'].value_counts().reset_index()
                 cnt_type_dyn.columns = ['النوع', 'العدد']
                 fig_bar_dyn = px.bar(cnt_type_dyn, x='النوع', y='العدد', color='النوع', color_discrete_map=COLOR_MAP, text='العدد', height=300)
-                fig_bar_dyn.update_layout(font=dict(family="Cairo, sans-serif", size=14))
+                fig_bar_dyn.update_layout(font=dict(family="Cairo, sans-serif", size=13))
                 st.plotly_chart(fig_bar_dyn, use_container_width=True)
         else:
             st.info("لا توجد بيانات متاحة لهذا القطاع.")
