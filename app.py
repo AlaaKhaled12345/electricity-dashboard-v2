@@ -53,18 +53,47 @@ st.markdown("""
     
     .table-header { background-color: #f8f9fa; padding: 12px; border-radius: 10px; border-right: 5px solid #2E86C1; margin-bottom: 12px; color: #1A5276; font-weight: 900; font-size: 1.2rem; }
     
-    /* تكبير وتوضيح القائمة المنسدلة (اختر القطاع) */
-    [data-testid="stSelectbox"] label p {
-        font-size: 1.4rem !important;
+    /* 📌 التنسيق الجذري للجداول المخصصة */
+    .table-container {
+        max-height: 500px;
+        overflow-y: auto;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+        border: 1px solid #e0e0e0;
+    }
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'Cairo', sans-serif !important;
+        background-color: white;
+        direction: rtl;
+    }
+    .custom-table thead th {
+        background-color: #1A5276 !important;
+        color: #ffffff !important;
+        font-size: 1.3rem !important; /* تكبير الخط جداً */
         font-weight: 900 !important;
-        color: #1A5276 !important;
+        text-align: center !important;
+        padding: 18px !important;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        border: 1px solid #113c59;
     }
+    .custom-table tbody td {
+        font-size: 1.1rem !important;
+        font-weight: 700 !important;
+        text-align: center !important;
+        padding: 12px !important;
+        border: 1px solid #e0e0e0;
+        color: #2c3e50 !important;
+    }
+    .custom-table tbody tr:nth-child(even) { background-color: #f8fafd; }
+    .custom-table tbody tr:hover { background-color: #e8f4fd !important; transition: 0.3s; }
     
-    div[data-baseweb="select"] > div {
-        font-size: 1.2rem !important;
-        font-weight: 800 !important;
-        color: #111 !important;
-    }
+    [data-testid="stSelectbox"] label p { font-size: 1.4rem !important; font-weight: 900 !important; color: #1A5276 !important; }
+    div[data-baseweb="select"] > div { font-size: 1.2rem !important; font-weight: 800 !important; color: #111 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -81,28 +110,16 @@ COLOR_MAP = {
 # 2. دوال المعالجة والتحميل والتنسيق
 # ==========================================
 
-# 📌 الدالة الجديدة لتنسيق الجداول وتكبير خطوطها
-def style_dataframe(df):
-    """تقوم هذه الدالة بإجبار الجداول على استخدام خطوط وألوان واضحة"""
-    styles = [
-        # تنسيق رؤوس الأعمدة (العناوين)
-        dict(selector="th", props=[
-            ("font-size", "18px"), 
-            ("font-weight", "900"), 
-            ("color", "#1A5276"), 
-            ("background-color", "#eef2f3"), 
-            ("text-align", "center"),
-            ("padding", "10px")
-        ]),
-        # تنسيق الخلايا العادية
-        dict(selector="td", props=[
-            ("font-size", "16px"), 
-            ("font-weight", "600"), 
-            ("text-align", "center"),
-            ("padding", "8px")
-        ])
-    ]
-    return df.style.set_table_styles(styles)
+# 📌 الدالة الجديدة لعرض الجداول بشكل HTML واضح جداً متجاهلة قيود Streamlit
+def display_table(df):
+    """تقوم هذه الدالة بتحويل البيانات إلى جدول HTML بتصميم قوي وواضح"""
+    if df.empty:
+        st.info("لا توجد بيانات للعرض.")
+        return
+    # توليد HTML للجدول
+    html_table = df.to_html(index=False, classes="custom-table", escape=False)
+    # وضعه داخل حاوية قابلة للتمرير (Scroll)
+    st.markdown(f'<div class="table-container">{html_table}</div>', unsafe_allow_html=True)
 
 def clean_sector_name(name):
     if pd.isna(name): return "قطاع غير محدد"
@@ -127,7 +144,7 @@ def render_safe_sunburst(df, path_cols, **kwargs):
         
     try:
         fig = px.sunburst(df_clean, path=path_cols, **kwargs)
-        fig.update_layout(font=dict(family="Cairo, sans-serif", size=14)) # كبرت خط الرسمة
+        fig.update_layout(font=dict(family="Cairo, sans-serif", size=14))
         if 'height' in kwargs and kwargs['height'] <= 400:
             fig.update_layout(margin=dict(t=0, l=0, r=0, b=0))
         st.plotly_chart(fig, use_container_width=True)
@@ -220,7 +237,6 @@ def load_all_transformers():
                 
         return df
     except Exception as e:
-        st.error(f"⚠️ حدث خطأ داخلي أثناء قراءة بيانات المحولات: {e}")
         return pd.DataFrame()
 
 def get_columns_to_display(df, exclude_cols):
@@ -308,8 +324,7 @@ with tab_home:
                 with st.expander("🔍 عرض تفاصيل النواقص في الملكية فقط"):
                     id_cols = get_columns_to_display(df_missing_own, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
                     display_cols = [col for col in (['القطاع', 'الهندسة'] + id_cols + ['الملكية']) if col in df_missing_own.columns]
-                    # 📌 تم تطبيق التنسيق هنا
-                    st.dataframe(style_dataframe(df_missing_own[display_cols]), use_container_width=True)
+                    display_table(df_missing_own[display_cols]) # 📌 استخدام الدالة الجديدة
 
         with u2: 
             df_missing_type = df_trans[df_trans['النوع'] == 'غير محدد النوع']
@@ -318,8 +333,7 @@ with tab_home:
                 with st.expander("🔍 عرض تفاصيل النواقص في نوع المبنى فقط"):
                     id_cols = get_columns_to_display(df_missing_type, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
                     display_cols = [col for col in (['القطاع', 'الهندسة'] + id_cols + ['النوع']) if col in df_missing_type.columns]
-                    # 📌 تم تطبيق التنسيق هنا
-                    st.dataframe(style_dataframe(df_missing_type[display_cols]), use_container_width=True)
+                    display_table(df_missing_type[display_cols]) # 📌 استخدام الدالة الجديدة
 
     st.markdown("---")
     st.markdown("###  الهياكل التنظيمية (Sunburst Charts)")
@@ -388,8 +402,9 @@ with tab_stations:
             fig_st_bar = px.bar(cnt_sec, x='القطاع', y='العدد', color='القطاع', color_discrete_map=SECTOR_COLOR_MAP)
             fig_st_bar.update_layout(font=dict(family="Cairo, sans-serif", size=14))
             st.plotly_chart(fig_st_bar, use_container_width=True)
-        # 📌 تم تطبيق التنسيق هنا
-        st.dataframe(style_dataframe(df_st), use_container_width=True)
+        
+        st.markdown("### 📑 بيانات المحطات التفصيلية")
+        display_table(df_st) # 📌 استخدام الدالة الجديدة
 
 with tab_dist:
     if df_dst is not None:
@@ -401,8 +416,9 @@ with tab_dist:
             fig_d_bar = px.bar(cnt_dst, x='الهندسة', y='العدد', color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, text='العدد')
             fig_d_bar.update_layout(font=dict(family="Cairo, sans-serif", size=14), xaxis=dict(tickangle=-90))
             st.plotly_chart(fig_d_bar, use_container_width=True)
-        # 📌 تم تطبيق التنسيق هنا
-        st.dataframe(style_dataframe(df_dst_summ), use_container_width=True)
+            
+        st.markdown("### 📑 ملخص أعداد الموزعات بالقطاعات")
+        display_table(df_dst_summ) # 📌 استخدام الدالة الجديدة
 
 # -----------------------------------------------------------------------------
 # TAB 4: المحولات الشاملة
@@ -448,8 +464,7 @@ with tab_all_trans:
                     with st.expander(f"🔍 عرض تفاصيل النواقص في الملكية بـ {selected_sec}"):
                         id_cols = get_columns_to_display(df_view_miss_own, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
                         display_cols = [col for col in (['الهندسة'] + id_cols + ['الملكية']) if col in df_view_miss_own.columns]
-                        # 📌 تم تطبيق التنسيق هنا
-                        st.dataframe(style_dataframe(df_view_miss_own[display_cols]), use_container_width=True)
+                        display_table(df_view_miss_own[display_cols]) # 📌 استخدام الدالة الجديدة
             
             with c_v6: 
                 df_view_miss_type = df_view[df_view['النوع'] == 'غير محدد النوع']
@@ -458,8 +473,7 @@ with tab_all_trans:
                     with st.expander(f"🔍 عرض تفاصيل النواقص في نوع المبنى بـ {selected_sec}"):
                         id_cols = get_columns_to_display(df_view_miss_type, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
                         display_cols = [col for col in (['الهندسة'] + id_cols + ['النوع']) if col in df_view_miss_type.columns]
-                        # 📌 تم تطبيق التنسيق هنا
-                        st.dataframe(style_dataframe(df_view_miss_type[display_cols]), use_container_width=True)
+                        display_table(df_view_miss_type[display_cols]) # 📌 استخدام الدالة الجديدة
             
             st.markdown("---")
             
@@ -468,9 +482,8 @@ with tab_all_trans:
                 st.markdown("<div class='table-header'>📋 تفاصيل المحولات (النوع والملكية)</div>", unsafe_allow_html=True)
                 trans_grouped = df_view.groupby(['الهندسة', 'الملكية', 'النوع']).size().reset_index(name='العدد')
                 if not trans_grouped.empty:
-                    pivot_trans = trans_grouped.pivot_table(index='الهندسة', columns=['الملكية', 'النوع'], values='العدد', fill_value=0).astype(int)
-                    # 📌 تم تطبيق التنسيق هنا
-                    st.dataframe(style_dataframe(pivot_trans), use_container_width=True, height=400)
+                    pivot_trans = trans_grouped.pivot_table(index='الهندسة', columns=['الملكية', 'النوع'], values='العدد', fill_value=0).astype(int).reset_index()
+                    display_table(pivot_trans) # 📌 استخدام الدالة الجديدة
                 
             with col_charts:
                 st.markdown("<div class='table-header'>📊 تحليل مرئي للقطاع</div>", unsafe_allow_html=True)
