@@ -149,6 +149,8 @@ def load_all_transformers():
                 
         return df
     except Exception as e:
+        # 👈 التعديل هنا: طبع رسالة الخطأ على الشاشة بدل ما يخفيها
+        st.error(f"⚠️ ظهر خطأ أثناء قراءة ملف المحولات: {e}")
         return pd.DataFrame()
 
 # ==========================================
@@ -292,21 +294,19 @@ with tab_home:
             text='العدد'
         )
         
-        # 👈 التعديلات هنا: الأرقام فوق العواميد بخط واضح، ومنع قص الأرقام العالية
         fig_bar_main.update_traces(
             textposition='outside', 
             cliponaxis=False,  
-            textfont=dict(size=14, color='#2c3e50') # تكبير الخط وتغيير لونه عشان يبقى بارز
+            textfont=dict(size=14, color='#2c3e50') 
         )
         
-        # 👈 مسحنا تحديد الـ range عشان فرق الأطوال الحقيقي يبان، وزودنا طول الشارت نفسه
         fig_bar_main.update_layout(
             xaxis_tickangle=-45, 
             xaxis_title="", 
             yaxis_title="عدد الأصول",
             legend_title="نوع الأصل",
-            height=600, # طولنا الشارت شوية عشان يدي مساحة للأطوال والعواميد تبان أحسن
-            margin=dict(t=60, b=100) # زودنا المساحة اللي فوق (t) عشان الأرقام العالية تاخد راحتها
+            height=600, 
+            margin=dict(t=60, b=100) 
         )
         st.plotly_chart(fig_bar_main, use_container_width=True)
     # ==========================================
