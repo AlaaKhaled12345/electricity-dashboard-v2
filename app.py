@@ -320,6 +320,7 @@ with tab_home:
         
         asset_colors = {'المحطات': '#457B9D', 'الموزعات': '#F4A261', 'المحولات': '#2A9D8F'}
         
+        # التعديل الجديد هنا لإظهار الأعمدة بشكل لوغاريتمي
         fig_bar_main = px.bar(
             df_melted, 
             x='القطاع', 
@@ -327,13 +328,14 @@ with tab_home:
             color='نوع الأصل', 
             barmode='group', 
             color_discrete_map=asset_colors,
-            text='العدد'
+            text='العدد',
+            log_y=True
         )
         fig_bar_main.update_traces(textposition='outside')
         fig_bar_main.update_layout(
             xaxis_tickangle=-45, 
             xaxis_title="", 
-            yaxis_title="عدد الأصول",
+            yaxis_title="عدد الأصول (Log Scale)",
             legend_title="نوع الأصل",
             height=450,
             margin=dict(t=20, b=100)
