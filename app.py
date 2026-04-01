@@ -149,15 +149,13 @@ def load_all_transformers():
                 
         return df
     except Exception as e:
-        # 👈 التعديل هنا: طبع رسالة الخطأ على الشاشة بدل ما يخفيها
-        st.error(f"⚠️ ظهر خطأ أثناء قراءة ملف المحولات: {e}")
         return pd.DataFrame()
 
 # ==========================================
 # 3. واجهة التطبيق
 # ==========================================
 
-st.title("⚡ نظم المعلومات الجغرافية و الفنية  - (GIS) Dashboard ")
+st.title("⚡ منظومة إدارة الكهرباء - Dashboard")
 
 df_st = load_stations()
 df_dst, df_dst_summ = load_distributors()
@@ -230,7 +228,7 @@ with tab_home:
             with p2: metric_card("غرف", len(df_pr[df_pr['النوع']=='غرفة']), style_class="card-private")
             with p3: metric_card("معلقات", len(df_pr[df_pr['النوع']=='معلق']), style_class="card-private")
 
-        st.markdown("#### ⚠️ بيانات غير محددة (Blanks)")
+        st.markdown("#### ⚠️ بيانات غير محددة (نواقص الإكسيل)")
         u1, u2 = st.columns(2)
         
         with u1: 
@@ -252,7 +250,7 @@ with tab_home:
                     st.dataframe(df_missing_type[display_cols], use_container_width=True)
 
     st.markdown("---")
-    st.markdown("###  الهياكل التنظيمية (Sunburst Charts)")
+    st.markdown("### 🍩 الهياكل التنظيمية (Sunburst Charts)")
     row3_c1, row3_c2, row3_c3 = st.columns(3)
     with row3_c1:
         if df_st is not None: 
@@ -263,7 +261,8 @@ with tab_home:
     with row3_c3:
         if not df_trans.empty: 
             render_safe_sunburst(df_trans, ['الملكية', 'النوع'], title="المحولات", color='النوع', color_discrete_map=COLOR_MAP)
-# ==========================================
+
+    # ==========================================
     # البار شارت المجمع (Bar Chart) - تم نقله لنهاية الصفحة
     # ==========================================
     st.markdown("---")
@@ -293,23 +292,18 @@ with tab_home:
             color_discrete_map=asset_colors,
             text='العدد'
         )
-        
-        fig_bar_main.update_traces(
-            textposition='outside', 
-            cliponaxis=False,  
-            textfont=dict(size=14, color='#2c3e50') 
-        )
-        
+        fig_bar_main.update_traces(textposition='outside')
         fig_bar_main.update_layout(
             xaxis_tickangle=-45, 
             xaxis_title="", 
             yaxis_title="عدد الأصول",
             legend_title="نوع الأصل",
-            height=600, 
-            margin=dict(t=60, b=100) 
+            height=450,
+            margin=dict(t=20, b=100)
         )
         st.plotly_chart(fig_bar_main, use_container_width=True)
     # ==========================================
+
 # -----------------------------------------------------------------------------
 # TAB 2 & 3
 # -----------------------------------------------------------------------------
@@ -342,7 +336,7 @@ with tab_dist:
 # -----------------------------------------------------------------------------
 with tab_all_trans:
     if not df_trans.empty:
-        st.markdown("###  استعلام ديناميكي لمحولات القطاعات")
+        st.markdown("### 🎯 استعلام ديناميكي لمحولات القطاعات")
         
         all_sectors_list = sorted([s for s in df_trans['القطاع'].unique() if s != "قطاع غير محدد" and str(s) != 'nan'])
         selected_sec = st.selectbox("📌 اختر القطاع لعرض محولاته:", ["الكل"] + all_sectors_list)
