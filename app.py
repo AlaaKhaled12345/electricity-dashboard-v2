@@ -10,30 +10,64 @@ st.set_page_config(layout="wide", page_title="Dashboard Electricity", page_icon=
 
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Cairo', sans-serif; direction: rtl; }
+    /* استدعاء خط Cairo بأوزان مختلفة عشان الوضوح */
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
     
-    .stTabs [data-baseweb="tab-list"] { gap: 8px; background-color: #ffffff; padding: 10px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-    .stTabs [data-baseweb="tab"] { height: 50px; white-space: pre-wrap; background-color: #f8f9fa; border-radius: 10px; color: #4a4a4a; font-weight: bold; border: 1px solid #e9ecef; }
-    .stTabs [aria-selected="true"] { background-color: #2E86C1; color: white; border: none; }
+    /* تظبيط الخط الأساسي للصفحة كلها */
+    html, body, [class*="css"] { 
+        font-family: 'Cairo', sans-serif !important; 
+        font-size: 16px !important; 
+        direction: rtl; 
+        color: #1f2937; 
+    }
+    
+    /* تظبيط العناوين الرئيسية والفرعية */
+    h1, h2, h3, h4 { 
+        font-family: 'Cairo', sans-serif !important;
+        color: #1A5276 !important; 
+        font-weight: 800 !important; 
+    }
+    h3 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
 
-    .metric-card { background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%); border-right: 5px solid #2E86C1; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; margin-bottom: 20px; transition: transform 0.3s ease; }
+    /* تظبيط خطوط التابات (Tabs) */
+    .stTabs [data-baseweb="tab-list"] { gap: 10px; background-color: #ffffff; padding: 10px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .stTabs [data-baseweb="tab"] { 
+        height: 55px; 
+        font-family: 'Cairo', sans-serif !important;
+        font-size: 1.1rem !important; 
+        font-weight: 700 !important; 
+        background-color: #f8f9fa; 
+        border-radius: 10px; 
+        color: #4a4a4a; 
+        border: 1px solid #e9ecef; 
+    }
+    .stTabs [aria-selected="true"] { background-color: #2E86C1 !important; color: white !important; font-weight: 800 !important; border: none; }
+
+    /* تظبيط الكروت والأرقام */
+    .metric-card { background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%); border-right: 6px solid #2E86C1; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; margin-bottom: 20px; transition: transform 0.3s ease; }
     .metric-card:hover { transform: translateY(-5px); }
-    .metric-title { color: #7f8c8d; font-size: 1.1rem; margin-bottom: 10px; font-weight: 600; }
-    .metric-value { color: #2c3e50; font-size: 2.2rem; font-weight: 800; }
-    .metric-sub { font-size: 0.9rem; color: #95a5a6; }
+    
+    .metric-title { color: #4b5563; font-size: 1.2rem; margin-bottom: 10px; font-weight: 700; }
+    .metric-value { color: #111827; font-size: 2.6rem; font-weight: 800; line-height: 1.2; }
+    .metric-sub { font-size: 1rem; color: #6b7280; font-weight: 600; }
 
+    /* ألوان حدود الكروت */
     .card-company { border-right-color: #5FA8D3; }
     .card-private { border-right-color: #E07A5F; }
     .card-total { border-right-color: #F4A261; }
     .card-unknown { border-right-color: #B5838D; background: linear-gradient(135deg, #ffffff 0%, #F8EDEB 100%); }
     
-    h3 { color: #2E86C1; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-    .table-header { background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-right: 5px solid #2E86C1; margin-bottom: 15px; color: #2c3e50; font-weight: bold; font-size: 1.1rem; }
+    /* تظبيط عناوين الجداول */
+    .table-header { background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-right: 5px solid #2E86C1; margin-bottom: 15px; color: #1A5276; font-weight: 800; font-size: 1.2rem; }
+    
+    /* تظبيط خطوط الجداول نفسها */
+    [data-testid="stDataFrame"] {
+        font-family: 'Cairo', sans-serif !important;
+        font-size: 15px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# ألوان مريحة وهادية جداً لأنواع المحولات
 COLOR_MAP = {
     'كشك': '#5DADE2',         
     'غرفة': '#F1948A',        
@@ -70,6 +104,8 @@ def render_safe_sunburst(df, path_cols, **kwargs):
         
     try:
         fig = px.sunburst(df_clean, path=path_cols, **kwargs)
+        # تظبيط الفونت جوه الرسمة
+        fig.update_layout(font=dict(family="Cairo, sans-serif", size=14))
         if 'height' in kwargs and kwargs['height'] <= 400:
             fig.update_layout(margin=dict(t=0, l=0, r=0, b=0))
         st.plotly_chart(fig, use_container_width=True)
@@ -94,16 +130,12 @@ def load_distributors():
     try:
         df = pd.read_excel(files[0]).iloc[:, [1, 2, 3, 4]]
         df.columns = ['القطاع', 'الهندسة', 'مسلسل', 'الموزع']
-        
         mask_total = df.astype(str).apply(lambda x: x.str.contains('إجمالي|اجمالي|الإجمالي|الاجمالي|الموزع', na=False)).any(axis=1)
         df = df[~mask_total]
-        
         df[['القطاع', 'الهندسة']] = df[['القطاع', 'الهندسة']].ffill()
-        
         df['الموزع'] = df['الموزع'].astype(str).str.strip()
         df = df[~df['الموزع'].isin(['nan', 'None', '', 'NaN'])]
         df = df.dropna(subset=['الموزع'])
-        
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
         
         eng_counts = df.groupby('القطاع')['الهندسة'].nunique()
@@ -124,11 +156,8 @@ def load_all_transformers():
     try:
         all_sheets = pd.read_excel(file_name, sheet_name=None)
         df = pd.concat(all_sheets.values(), ignore_index=True)
-        
-        # 1. تنظيف أسماء الأعمدة من أي مسافات زائدة
         df.columns = df.columns.astype(str).str.strip()
         
-        # 2. معالجة عمود النوع (بطريقة آمنة جداً تمنع خطأ الـ float)
         if 'نوع المبني' in df.columns:
             df['النوع'] = df['نوع المبني']
         elif 'النوع' not in df.columns:
@@ -136,58 +165,39 @@ def load_all_transformers():
             
         def safe_get_type(val):
             val_str = str(val).strip()
-            if val_str in ['nan', 'None', '', 'NaT', 'غير محدد النوع']:
-                return 'غير محدد النوع'
-            if 'معلق' in val_str or 'هوائي' in val_str:
-                return 'معلق'
-            if 'كشك' in val_str:
-                return 'كشك'
-            if 'غرف' in val_str:
-                return 'غرفة'
+            if val_str in ['nan', 'None', '', 'NaT', 'غير محدد النوع']: return 'غير محدد النوع'
+            if 'معلق' in val_str or 'هوائي' in val_str: return 'معلق'
+            if 'كشك' in val_str: return 'كشك'
+            if 'غرف' in val_str: return 'غرفة'
             return 'أخرى'
             
         df['النوع'] = df['النوع'].apply(safe_get_type)
         
-        # 3. معالجة القطاع
-        if 'القطاع' in df.columns:
-            df['القطاع'] = df['القطاع'].apply(clean_sector_name)
-        else:
-            df['القطاع'] = 'قطاع غير محدد'
+        if 'القطاع' in df.columns: df['القطاع'] = df['القطاع'].apply(clean_sector_name)
+        else: df['القطاع'] = 'قطاع غير محدد'
             
-        # 4. معالجة الملكية (بطريقة آمنة جداً)
-        if 'الملكية' not in df.columns:
-            df['الملكية'] = 'غير محدد الملكية'
+        if 'الملكية' not in df.columns: df['الملكية'] = 'غير محدد الملكية'
             
         def safe_get_owner(val):
             val_str = str(val).strip()
-            if val_str in ['nan', 'None', '', 'NaT', 'غير محدد الملكية']:
-                return 'غير محدد الملكية'
-            if 'شركة' in val_str:
-                return 'ملك الشركة'
-            if 'غير' in val_str:
-                return 'ملك الغير'
+            if val_str in ['nan', 'None', '', 'NaT', 'غير محدد الملكية']: return 'غير محدد الملكية'
+            if 'شركة' in val_str: return 'ملك الشركة'
+            if 'غير' in val_str: return 'ملك الغير'
             return 'غير محدد الملكية'
             
         df['الملكية'] = df['الملكية'].apply(safe_get_owner)
             
-        # 5. معالجة الهندسة
-        if 'الهندسة' not in df.columns:
-            df['الهندسة'] = 'هندسة غير محددة'
-        else:
-            df['الهندسة'] = df['الهندسة'].fillna('هندسة غير محددة').astype(str)
+        if 'الهندسة' not in df.columns: df['الهندسة'] = 'هندسة غير محددة'
+        else: df['الهندسة'] = df['الهندسة'].fillna('هندسة غير محددة').astype(str)
             
-        # 6. معالجة القدرة
-        if 'القدرة' not in df.columns:
-            df['القدرة'] = 0.0
+        if 'القدرة' not in df.columns: df['القدرة'] = 0.0
             
         cols_to_category = ['القطاع', 'الهندسة', 'النوع', 'الملكية']
         for col in cols_to_category:
-            if col in df.columns:
-                df[col] = df[col].astype('category')
+            if col in df.columns: df[col] = df[col].astype('category')
                 
         return df
     except Exception as e:
-        # لو حصل أي مشكلة هيظهر إيرور أحمر صريح بدل ما يخفي البيانات
         st.error(f"⚠️ حدث خطأ داخلي أثناء قراءة بيانات المحولات: {e}")
         return pd.DataFrame()
 
@@ -201,7 +211,6 @@ df_st = load_stations()
 df_dst, df_dst_summ = load_distributors()
 df_trans = load_all_transformers()
 
-# ألوان القطاعات
 all_sectors = set()
 if df_st is not None: all_sectors.update(df_st['القطاع'].dropna().unique())
 if df_dst is not None: all_sectors.update(df_dst['القطاع'].dropna().unique())
@@ -320,7 +329,6 @@ with tab_home:
         
         asset_colors = {'المحطات': '#457B9D', 'الموزعات': '#F4A261', 'المحولات': '#2A9D8F'}
         
-        # التعديل الجديد هنا لإظهار الأعمدة بشكل لوغاريتمي
         fig_bar_main = px.bar(
             df_melted, 
             x='القطاع', 
@@ -333,6 +341,7 @@ with tab_home:
         )
         fig_bar_main.update_traces(textposition='outside')
         fig_bar_main.update_layout(
+            font=dict(family="Cairo, sans-serif", size=14),
             xaxis_tickangle=-45, 
             xaxis_title="", 
             yaxis_title="عدد الأصول (Log Scale)",
@@ -354,6 +363,7 @@ with tab_stations:
             cnt_sec = df_st['القطاع'].value_counts().reset_index()
             cnt_sec.columns = ['القطاع', 'العدد']
             fig_st_bar = px.bar(cnt_sec, x='القطاع', y='العدد', color='القطاع', color_discrete_map=SECTOR_COLOR_MAP)
+            fig_st_bar.update_layout(font=dict(family="Cairo, sans-serif", size=14))
             st.plotly_chart(fig_st_bar, use_container_width=True)
         st.dataframe(df_st, use_container_width=True)
 
@@ -365,23 +375,22 @@ with tab_dist:
         with cd2:
             cnt_dst = df_dst.groupby(['القطاع', 'الهندسة']).size().reset_index(name='العدد').sort_values('العدد', ascending=False)
             fig_d_bar = px.bar(cnt_dst, x='الهندسة', y='العدد', color='القطاع', color_discrete_map=SECTOR_COLOR_MAP, text='العدد')
-            fig_d_bar.update_layout(xaxis=dict(tickangle=-90))
+            fig_d_bar.update_layout(font=dict(family="Cairo, sans-serif", size=14), xaxis=dict(tickangle=-90))
             st.plotly_chart(fig_d_bar, use_container_width=True)
         st.dataframe(df_dst_summ, use_container_width=True)
 
 # -----------------------------------------------------------------------------
-# TAB 4: المحولات الشاملة (الاستعلام الديناميكي)
+# TAB 4: المحولات الشاملة
 # -----------------------------------------------------------------------------
 with tab_all_trans:
     if not df_trans.empty:
-        st.markdown("###  استعلام ديناميكي لبيانات القطاعات")
+        st.markdown("### 🎯 استعلام ديناميكي لبيانات القطاعات")
         
         all_sectors_list = sorted([s for s in df_trans['القطاع'].unique() if s != "قطاع غير محدد" and str(s) != 'nan'])
         selected_sec = st.selectbox("📌 اختر القطاع لعرض تفاصيله:", ["الكل"] + all_sectors_list)
         
-        # 1. فلترة البيانات بناءً على القطاع المختار
+        # فلترة البيانات بناءً على القطاع المختار
         df_view = df_trans if selected_sec == "الكل" else df_trans[df_trans['القطاع'] == selected_sec]
-        
         df_st_view = pd.DataFrame() if df_st is None else (df_st if selected_sec == "الكل" else df_st[df_st['القطاع'] == selected_sec])
         df_dst_view = pd.DataFrame() if df_dst is None else (df_dst if selected_sec == "الكل" else df_dst[df_dst['القطاع'] == selected_sec])
         
@@ -395,7 +404,7 @@ with tab_all_trans:
             num_company = len(df_view[df_view['الملكية'] == 'ملك الشركة'])
             num_private = len(df_view[df_view['الملكية'] == 'ملك الغير'])
             
-            # 2. عرض الكروت الأساسية
+            # عرض الكروت الأساسية
             c_v1, c_v2, c_v3, c_v4 = st.columns(4)
             with c_v1: 
                 metric_card("عدد الهندسات", num_engs, "هندسة بالقطاع")
@@ -406,14 +415,14 @@ with tab_all_trans:
             with c_v4: 
                 metric_card("إجمالي المحولات", num_total_trans, "محول بالقطاع", "card-total")
                 # التفرع (لما تدوسي يفتح تفاصيل الملكية)
-                with st.expander("👇 لعرض تفاصيل ملكية المحولات"):
+                with st.expander("👇 اضغط لعرض تفاصيل ملكية المحولات"):
                     col_comp, col_priv = st.columns(2)
                     with col_comp: metric_card("ملك الشركة", num_company, "", "card-company")
                     with col_priv: metric_card("ملك الغير", num_private, "", "card-private")
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # 3. عرض النواقص
+            # عرض النواقص
             c_v5, c_v6 = st.columns(2)
             with c_v5: 
                 df_view_miss_own = df_view[df_view['الملكية'] == 'غير محدد الملكية']
@@ -435,7 +444,7 @@ with tab_all_trans:
             
             st.markdown("---")
             
-            # 4. الجداول والرسومات
+            # الجداول والرسومات
             col_data, col_charts = st.columns([1.2, 1])
             with col_data:
                 st.markdown("<div class='table-header'>📋 تفاصيل المحولات (النوع والملكية)</div>", unsafe_allow_html=True)
@@ -451,6 +460,7 @@ with tab_all_trans:
                 cnt_type_dyn = df_view['النوع'].value_counts().reset_index()
                 cnt_type_dyn.columns = ['النوع', 'العدد']
                 fig_bar_dyn = px.bar(cnt_type_dyn, x='النوع', y='العدد', color='النوع', color_discrete_map=COLOR_MAP, text='العدد', height=300)
+                fig_bar_dyn.update_layout(font=dict(family="Cairo, sans-serif", size=14))
                 st.plotly_chart(fig_bar_dyn, use_container_width=True)
         else:
             st.info("لا توجد بيانات متاحة لهذا القطاع.")
