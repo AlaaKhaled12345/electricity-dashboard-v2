@@ -155,7 +155,7 @@ def load_all_transformers():
 # 3. واجهة التطبيق
 # ==========================================
 
-st.title("⚡ منظومة إدارة الكهرباء - Dashboard")
+st.title("⚡ GIS - Dashboard")
 
 df_st = load_stations()
 df_dst, df_dst_summ = load_distributors()
