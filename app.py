@@ -33,7 +33,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-COLOR_MAP = {'كشك': '#2980b9', 'غرفة': '#c0392b', 'معلق': '#f1c40f', 'هوائي': '#8e44ad', 'أخرى': '#7f8c8d', 'غير محدد النوع': '#bdc3c7'}
+COLOR_MAP = {'كشك': '#2980b9', 'غرفة': '#c0392b', 'معلق': '#f1c40f', 'هوائي': '#8e44ad', 'أخرى': '#7f8c8d', 'غير محدد': '#bdc3c7'}
 
 # ==========================================
 # 2. دوال المعالجة والتحميل (Backend Logic)
@@ -83,20 +83,26 @@ def load_distributors():
     files = [f for f in os.listdir('.') if "517" in f and f.endswith('.xlsx')]
     if not files: return None, None
     try:
+        # قراءة أول 4 أعمدة من ملف الموزعات
         df = pd.read_excel(files[0]).iloc[:, [1, 2, 3, 4]]
         df.columns = ['القطاع', 'الهندسة', 'مسلسل', 'الموزع']
         
+        # 1. الضربة القاضية لصفوف "الإجمالي": مسح أي صف يحتوي على كلمة إجمالي في أي خلية قبل العد
         mask_total = df.astype(str).apply(lambda x: x.str.contains('إجمالي|اجمالي|الإجمالي|الاجمالي|الموزع', na=False)).any(axis=1)
         df = df[~mask_total]
         
+        # 2. ملء الخلايا المدمجة للقطاعات والهندسات فقط 
         df[['القطاع', 'الهندسة']] = df[['القطاع', 'الهندسة']].ffill()
         
+        # 3. التأكد من تنظيف عمود الموزع ومسح الفراغات
         df['الموزع'] = df['الموزع'].astype(str).str.strip()
         df = df[~df['الموزع'].isin(['nan', 'None', '', 'NaN'])]
         df = df.dropna(subset=['الموزع'])
         
+        # 4. تنظيف وتوحيد أسماء القطاعات
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
         
+        # تجميع البيانات
         eng_counts = df.groupby('القطاع')['الهندسة'].nunique()
         df['قطاع_للرسم'] = df['القطاع'].apply(lambda x: f"{x} (هندسات: {eng_counts.get(x, 0)})")
         summary = df.groupby('القطاع').agg({'الهندسة': 'nunique', 'الموزع': 'count'}).reset_index()
@@ -118,12 +124,12 @@ def load_all_transformers():
         if 'نوع المبني' in df.columns:
             df['النوع'] = df['نوع المبني'].astype(str).str.strip()
         else:
-            df['النوع'] = 'غير محدد النوع'
+            df['النوع'] = 'غير محدد'
             
-        df['النوع'] = df['النوع'].apply(lambda x: 'غير محدد النوع' if x in ['nan', 'None', ''] else ('معلق' if 'معلق' in x or 'هوائي' in x else ('كشك' if 'كشك' in x else ('غرفة' if 'غرف' in x else 'أخرى'))))
+        df['النوع'] = df['النوع'].apply(lambda x: 'غير محدد' if x in ['nan', 'None', ''] else ('معلق' if 'معلق' in x or 'هوائي' in x else ('كشك' if 'كشك' in x else ('غرفة' if 'غرف' in x else 'أخرى'))))
         
         df['القطاع'] = df['القطاع'].apply(clean_sector_name)
-        df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'غير محدد الملكية'))
+        df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'غير محدد'))
         
         if 'الهندسة' not in df.columns:
             df['الهندسة'] = 'هندسة غير محددة'
@@ -158,11 +164,6 @@ tab_home, tab_stations, tab_dist, tab_all_trans = st.tabs([
     "🔌 الموزعات (517)", 
     "⚡ المحولات الشاملة"
 ])
-
-def get_columns_to_display(df, exclude_cols):
-    keywords = ['كود', 'رقم', 'اسم', 'محول']
-    id_columns = [col for col in df.columns if any(kw in col for kw in keywords) and col not in exclude_cols]
-    return id_columns
 
 # -----------------------------------------------------------------------------
 # TAB 1: الرئيسية
@@ -207,25 +208,8 @@ with tab_home:
 
         st.markdown("#### ⚠️ بيانات غير محددة (نواقص الإكسيل)")
         u1, u2 = st.columns(2)
-        
-        # --- تطبيق فكرتك هنا في الرئيسية ---
-        with u1: 
-            df_missing_own = df_trans[df_trans['الملكية'] == 'غير محدد الملكية']
-            metric_card("ملكية غير محددة", len(df_missing_own), "خلايا فارغة", "card-unknown")
-            if not df_missing_own.empty:
-                with st.expander("🔍 عرض تفاصيل النواقص في الملكية فقط"):
-                    id_cols = get_columns_to_display(df_missing_own, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
-                    display_cols = [col for col in (['القطاع', 'الهندسة'] + id_cols + ['الملكية']) if col in df_missing_own.columns]
-                    st.dataframe(df_missing_own[display_cols], use_container_width=True)
-
-        with u2: 
-            df_missing_type = df_trans[df_trans['النوع'] == 'غير محدد النوع']
-            metric_card("نوع مبنى غير محدد", len(df_missing_type), "خلايا فارغة", "card-unknown")
-            if not df_missing_type.empty:
-                with st.expander("🔍 عرض تفاصيل النواقص في نوع المبنى فقط"):
-                    id_cols = get_columns_to_display(df_missing_type, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
-                    display_cols = [col for col in (['القطاع', 'الهندسة'] + id_cols + ['النوع']) if col in df_missing_type.columns]
-                    st.dataframe(df_missing_type[display_cols], use_container_width=True)
+        with u1: metric_card("ملكية غير محددة", len(df_trans[df_trans['الملكية'] == 'غير محدد']), "خلايا فارغة", "card-unknown")
+        with u2: metric_card("نوع مبنى غير محدد", len(df_trans[df_trans['النوع'] == 'غير محدد']), "خلايا فارغة", "card-unknown")
 
     st.markdown("---")
     st.markdown("### 📈 الرسوم التوضيحية المجمعة")
@@ -284,32 +268,18 @@ with tab_all_trans:
             num_company = len(df_view[df_view['الملكية'] == 'ملك الشركة'])
             num_private = len(df_view[df_view['الملكية'] == 'ملك الغير'])
             
+            num_unspecified_own = len(df_view[df_view['الملكية'] == 'غير محدد'])
+            num_unspecified_type = len(df_view[df_view['النوع'] == 'غير محدد'])
+            
             c_v1, c_v2, c_v3, c_v4 = st.columns(4)
             with c_v1: metric_card("عدد الهندسات", num_engs, "هندسة بالقطاع")
             with c_v2: metric_card("إجمالي المحولات", num_total_trans, "محول")
             with c_v3: metric_card("ملك الشركة", num_company, "محول", "card-company")
             with c_v4: metric_card("ملك الغير", num_private, "محول", "card-private")
             
-            # --- تطبيق فكرتك هنا داخل القطاع المختار ---
             c_v5, c_v6 = st.columns(2)
-            
-            with c_v5: 
-                df_view_miss_own = df_view[df_view['الملكية'] == 'غير محدد الملكية']
-                metric_card("ملكية غير محددة", len(df_view_miss_own), "محولات بدون ملكية", "card-unknown")
-                if not df_view_miss_own.empty:
-                    with st.expander(f"🔍 عرض تفاصيل النواقص في الملكية بـ {selected_sec}"):
-                        id_cols = get_columns_to_display(df_view_miss_own, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
-                        display_cols = [col for col in (['الهندسة'] + id_cols + ['الملكية']) if col in df_view_miss_own.columns]
-                        st.dataframe(df_view_miss_own[display_cols], use_container_width=True)
-            
-            with c_v6: 
-                df_view_miss_type = df_view[df_view['النوع'] == 'غير محدد النوع']
-                metric_card("نوع غير محدد", len(df_view_miss_type), "محولات بدون نوع مبنى", "card-unknown")
-                if not df_view_miss_type.empty:
-                    with st.expander(f"🔍 عرض تفاصيل النواقص في نوع المبنى بـ {selected_sec}"):
-                        id_cols = get_columns_to_display(df_view_miss_type, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
-                        display_cols = [col for col in (['الهندسة'] + id_cols + ['النوع']) if col in df_view_miss_type.columns]
-                        st.dataframe(df_view_miss_type[display_cols], use_container_width=True)
+            with c_v5: metric_card("ملكية غير محددة", num_unspecified_own, "محولات بدون ملكية", "card-unknown")
+            with c_v6: metric_card("نوع غير محدد", num_unspecified_type, "محولات بدون نوع مبنى", "card-unknown")
             
             st.markdown("---")
             
