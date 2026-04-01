@@ -370,31 +370,51 @@ with tab_dist:
         st.dataframe(df_dst_summ, use_container_width=True)
 
 # -----------------------------------------------------------------------------
-# TAB 4: المحولات الشاملة
+# TAB 4: المحولات الشاملة (الاستعلام الديناميكي)
 # -----------------------------------------------------------------------------
 with tab_all_trans:
     if not df_trans.empty:
-        st.markdown("### 🎯 استعلام ديناميكي لمحولات القطاعات")
+        st.markdown("### 🎯 استعلام ديناميكي لبيانات القطاعات")
         
         all_sectors_list = sorted([s for s in df_trans['القطاع'].unique() if s != "قطاع غير محدد" and str(s) != 'nan'])
-        selected_sec = st.selectbox("📌 اختر القطاع لعرض محولاته:", ["الكل"] + all_sectors_list)
+        selected_sec = st.selectbox("📌 اختر القطاع لعرض تفاصيله:", ["الكل"] + all_sectors_list)
         
+        # 1. فلترة البيانات بناءً على القطاع المختار
         df_view = df_trans if selected_sec == "الكل" else df_trans[df_trans['القطاع'] == selected_sec]
         
+        df_st_view = pd.DataFrame() if df_st is None else (df_st if selected_sec == "الكل" else df_st[df_st['القطاع'] == selected_sec])
+        df_dst_view = pd.DataFrame() if df_dst is None else (df_dst if selected_sec == "الكل" else df_dst[df_dst['القطاع'] == selected_sec])
+        
         if not df_view.empty:
+            # حساب الأرقام
             num_engs = df_view['الهندسة'].nunique()
+            num_stations = len(df_st_view)
+            num_distributors = len(df_dst_view)
+            
             num_total_trans = len(df_view)
             num_company = len(df_view[df_view['الملكية'] == 'ملك الشركة'])
             num_private = len(df_view[df_view['الملكية'] == 'ملك الغير'])
             
+            # 2. عرض الكروت الأساسية
             c_v1, c_v2, c_v3, c_v4 = st.columns(4)
-            with c_v1: metric_card("عدد الهندسات", num_engs, "هندسة بالقطاع")
-            with c_v2: metric_card("إجمالي المحولات", num_total_trans, "محول")
-            with c_v3: metric_card("ملك الشركة", num_company, "محول", "card-company")
-            with c_v4: metric_card("ملك الغير", num_private, "محول", "card-private")
+            with c_v1: 
+                metric_card("عدد الهندسات", num_engs, "هندسة بالقطاع")
+            with c_v2: 
+                metric_card("المحطات العامة", num_stations, "محطة بالقطاع")
+            with c_v3: 
+                metric_card("الموزعات", num_distributors, "موزع بالقطاع")
+            with c_v4: 
+                metric_card("إجمالي المحولات", num_total_trans, "محول بالقطاع", "card-total")
+                # التفرع (لما تدوسي يفتح تفاصيل الملكية)
+                with st.expander("👇 اضغط لعرض تفاصيل ملكية المحولات"):
+                    col_comp, col_priv = st.columns(2)
+                    with col_comp: metric_card("ملك الشركة", num_company, "", "card-company")
+                    with col_priv: metric_card("ملك الغير", num_private, "", "card-private")
             
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # 3. عرض النواقص
             c_v5, c_v6 = st.columns(2)
-            
             with c_v5: 
                 df_view_miss_own = df_view[df_view['الملكية'] == 'غير محدد الملكية']
                 metric_card("ملكية غير محددة", len(df_view_miss_own), "محولات بدون ملكية", "card-unknown")
@@ -415,8 +435,8 @@ with tab_all_trans:
             
             st.markdown("---")
             
+            # 4. الجداول والرسومات
             col_data, col_charts = st.columns([1.2, 1])
-            
             with col_data:
                 st.markdown("<div class='table-header'>📋 تفاصيل المحولات (النوع والملكية)</div>", unsafe_allow_html=True)
                 trans_grouped = df_view.groupby(['الهندسة', 'الملكية', 'النوع']).size().reset_index(name='العدد')
@@ -426,7 +446,6 @@ with tab_all_trans:
                 
             with col_charts:
                 st.markdown("<div class='table-header'>📊 تحليل مرئي للقطاع</div>", unsafe_allow_html=True)
-                
                 render_safe_sunburst(df_view, ['الهندسة', 'الملكية', 'النوع'], color='النوع', color_discrete_map=COLOR_MAP, height=350)
                 
                 cnt_type_dyn = df_view['النوع'].value_counts().reset_index()
