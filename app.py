@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import os
+import traceback
 
 # ==========================================
 # 1. إعداد الصفحة والتصميم (CSS)
@@ -49,6 +50,7 @@ COLOR_MAP = {
 def clean_sector_name(name):
     if pd.isna(name): return "قطاع غير محدد"
     s = str(name).strip().replace('أ', 'ا').replace('ة', 'ه').replace('قطاعى', '').replace('قطاع', '').strip()
+    if not s: return "قطاع غير محدد"
     return f"قطاع {' '.join(s.split())}"
 
 def metric_card(title, value, subtitle="", style_class=""):
@@ -79,7 +81,8 @@ def render_safe_sunburst(df, path_cols, **kwargs):
 def load_stations():
     if os.path.exists('Electricity_Stations_Final_Cleaned.xlsx'):
         df = pd.read_excel('Electricity_Stations_Final_Cleaned.xlsx')
-        df['القطاع'] = df['القطاع'].apply(clean_sector_name)
+        if 'القطاع' in df.columns:
+            df['القطاع'] = df['القطاع'].apply(clean_sector_name)
         col_name = 'المحطة' if 'المحطة' in df.columns else df.columns[1]
         df = df.dropna(subset=[col_name]) 
         df['العدد'] = 1
@@ -123,38 +126,65 @@ def load_all_transformers():
         all_sheets = pd.read_excel(file_name, sheet_name=None)
         df = pd.concat(all_sheets.values(), ignore_index=True)
         
-        # 👈 الحل: إجبار العمود على التحول لنص صريح قبل معالجته
+        # --- تنظيف النوع ---
         if 'نوع المبني' in df.columns:
             df['النوع'] = df['نوع المبني']
         elif 'النوع' not in df.columns:
             df['النوع'] = 'غير محدد النوع'
             
-        df['النوع'] = df['النوع'].astype(str).str.strip() # تحويل شامل للنصوص
-        df['النوع'] = df['النوع'].apply(lambda x: 'غير محدد النوع' if x in ['nan', 'None', ''] else ('معلق' if 'معلق' in x or 'هوائي' in x else ('كشك' if 'كشك' in x else ('غرفة' if 'غرف' in x else 'أخرى'))))
+        # استخدام fillna لتجنب الـ NaN تماماً قبل التحويل لنص
+        df['النوع'] = df['النوع'].fillna('غير محدد النوع')
         
-        # 👈 تأمين عمود الملكية بنفس الطريقة
+        def classify_type(val):
+            val_str = str(val).strip() # إجبار عنيف للتحويل لنص
+            if val_str in ['nan', 'None', '', 'غير محدد النوع']: return 'غير محدد النوع'
+            if 'معلق' in val_str or 'هوائي' in val_str: return 'معلق'
+            if 'كشك' in val_str: return 'كشك'
+            if 'غرف' in val_str: return 'غرفة'
+            return 'أخرى'
+            
+        df['النوع'] = df['النوع'].apply(classify_type)
+
+        # --- تنظيف الملكية ---
         if 'الملكية' not in df.columns:
             df['الملكية'] = 'غير محدد الملكية'
-        df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'غير محدد الملكية'))
+            
+        df['الملكية'] = df['الملكية'].fillna('غير محدد الملكية')
         
-        df['القطاع'] = df['القطاع'].apply(clean_sector_name)
+        def classify_owner(val):
+            val_str = str(val).strip() # إجبار عنيف للتحويل لنص
+            if 'شركة' in val_str: return 'ملك الشركة'
+            if 'غير' in val_str: return 'ملك الغير'
+            return 'غير محدد الملكية'
+            
+        df['الملكية'] = df['الملكية'].apply(classify_owner)
+        
+        # --- تنظيف باقي الأعمدة الأساسية ---
+        if 'القطاع' not in df.columns:
+            df['القطاع'] = 'قطاع غير محدد'
+        df['القطاع'] = df['القطاع'].fillna('قطاع غير محدد').apply(clean_sector_name)
         
         if 'الهندسة' not in df.columns:
             df['الهندسة'] = 'هندسة غير محددة'
-        else:
-            df['الهندسة'] = df['الهندسة'].fillna('هندسة غير محددة').astype(str)
+        df['الهندسة'] = df['الهندسة'].fillna('هندسة غير محددة').astype(str)
             
         if 'القدرة' not in df.columns:
             df['القدرة'] = 0.0
             
+        # تحويل لـ Category لتقليل مساحة الرام
         cols_to_category = ['القطاع', 'الهندسة', 'النوع', 'الملكية']
         for col in cols_to_category:
             if col in df.columns:
                 df[col] = df[col].astype('category')
                 
         return df
+        
     except Exception as e:
+        # لو حصل خطأ، هيطبع تفاصيله بالكامل عشان نعرف السطر بالظبط
+        error_details = traceback.format_exc()
         st.error(f"⚠️ ظهر خطأ أثناء قراءة ملف المحولات: {e}")
+        with st.expander("🔍 تفاصيل الخطأ للمبرمج (Traceback)"):
+            st.code(error_details)
         return pd.DataFrame()
 
 # ==========================================
