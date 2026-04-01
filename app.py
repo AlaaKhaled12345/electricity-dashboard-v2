@@ -16,7 +16,6 @@ st.markdown("""
     /* تظبيط الخط الأساسي للصفحة كلها */
     html, body, [class*="css"] { 
         font-family: 'Cairo', sans-serif !important; 
-        font-size: 15px !important; 
         direction: rtl; 
         color: #1f2937; 
     }
@@ -50,7 +49,6 @@ st.markdown("""
     .metric-card { background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%); border-right: 6px solid #2E86C1; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; margin-bottom: 20px; transition: transform 0.3s ease; }
     .metric-card:hover { transform: translateY(-5px); }
     
-    /* تصغير عنوان الكارت */
     .metric-title { color: #4b5563; font-size: 1.05rem; margin-bottom: 8px; font-weight: 700; }
     .metric-value { color: #111827; font-size: 2.2rem; font-weight: 800; line-height: 1.2; }
     .metric-sub { font-size: 0.95rem; color: #6b7280; font-weight: 600; }
@@ -61,13 +59,39 @@ st.markdown("""
     .card-total { border-right-color: #F4A261; }
     .card-unknown { border-right-color: #B5838D; background: linear-gradient(135deg, #ffffff 0%, #F8EDEB 100%); }
     
-    /* تصغير عناوين الجداول */
     .table-header { background-color: #f8f9fa; padding: 12px; border-radius: 10px; border-right: 5px solid #2E86C1; margin-bottom: 12px; color: #1A5276; font-weight: 800; font-size: 1.1rem; }
     
-    /* تظبيط خطوط الجداول نفسها */
-    [data-testid="stDataFrame"] {
+    /* ========================================= */
+    /* التعديلات الجديدة (الجداول وقوائم الاختيار) */
+    /* ========================================= */
+    
+    /* 1. تكبير وتوضيح عناوين الجداول (رؤوس الأعمدة) */
+    [data-testid="stDataFrame"] th {
         font-family: 'Cairo', sans-serif !important;
-        font-size: 14px !important;
+        font-size: 16px !important;
+        font-weight: 800 !important;
+        color: #1A5276 !important;
+        background-color: #eef2f3 !important;
+    }
+    [data-testid="stDataFrame"] td {
+        font-family: 'Cairo', sans-serif !important;
+        font-size: 14.5px !important;
+        font-weight: 600 !important;
+    }
+    
+    /* 2. تكبير جملة "اختر القطاع..." (Selectbox Label) */
+    [data-testid="stSelectbox"] label p {
+        font-family: 'Cairo', sans-serif !important;
+        font-size: 1.3rem !important;
+        font-weight: 800 !important;
+        color: #1A5276 !important;
+    }
+    
+    /* 3. تكبير الكلام داخل القائمة المنسدلة نفسها */
+    [data-baseweb="select"] {
+        font-family: 'Cairo', sans-serif !important;
+        font-size: 1.1rem !important;
+        font-weight: 700 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -108,7 +132,6 @@ def render_safe_sunburst(df, path_cols, **kwargs):
         
     try:
         fig = px.sunburst(df_clean, path=path_cols, **kwargs)
-        # تظبيط الفونت جوه الرسمة
         fig.update_layout(font=dict(family="Cairo, sans-serif", size=13))
         if 'height' in kwargs and kwargs['height'] <= 400:
             fig.update_layout(margin=dict(t=0, l=0, r=0, b=0))
