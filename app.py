@@ -118,7 +118,8 @@ def load_distributors():
 @st.cache_data
 def load_all_transformers():
     file_name = 'Transformers_All.xlsx'
-    if not os.path.exists(file_name): return pd.DataFrame()
+    if not os.path.exists(file_name): 
+        return pd.DataFrame()
     
     try:
         all_sheets = pd.read_excel(file_name, sheet_name=None)
@@ -127,31 +128,55 @@ def load_all_transformers():
         # 1. تنظيف أسماء الأعمدة من أي مسافات زائدة
         df.columns = df.columns.astype(str).str.strip()
         
-        # 2. التأكد من وجود الأعمدة قبل التعديل عليها
+        # 2. معالجة عمود النوع (بطريقة آمنة جداً تمنع خطأ الـ float)
         if 'نوع المبني' in df.columns:
-            df['النوع'] = df['نوع المبني'].astype(str).str.strip()
-        elif 'النوع' in df.columns:
-            df['النوع'] = df['النوع'].astype(str).str.strip()
-        else:
+            df['النوع'] = df['نوع المبني']
+        elif 'النوع' not in df.columns:
             df['النوع'] = 'غير محدد النوع'
             
-        df['النوع'] = df['النوع'].apply(lambda x: 'غير محدد النوع' if x in ['nan', 'None', ''] else ('معلق' if 'معلق' in x or 'هوائي' in x else ('كشك' if 'كشك' in x else ('غرفة' if 'غرف' in x else 'أخرى'))))
+        def safe_get_type(val):
+            val_str = str(val).strip()
+            if val_str in ['nan', 'None', '', 'NaT', 'غير محدد النوع']:
+                return 'غير محدد النوع'
+            if 'معلق' in val_str or 'هوائي' in val_str:
+                return 'معلق'
+            if 'كشك' in val_str:
+                return 'كشك'
+            if 'غرف' in val_str:
+                return 'غرفة'
+            return 'أخرى'
+            
+        df['النوع'] = df['النوع'].apply(safe_get_type)
         
+        # 3. معالجة القطاع
         if 'القطاع' in df.columns:
             df['القطاع'] = df['القطاع'].apply(clean_sector_name)
         else:
             df['القطاع'] = 'قطاع غير محدد'
             
-        if 'الملكية' in df.columns:
-            df['الملكية'] = df['الملكية'].astype(str).apply(lambda x: 'ملك الشركة' if 'شركة' in x else ('ملك الغير' if 'غير' in x else 'غير محدد الملكية'))
-        else:
+        # 4. معالجة الملكية (بطريقة آمنة جداً)
+        if 'الملكية' not in df.columns:
             df['الملكية'] = 'غير محدد الملكية'
             
+        def safe_get_owner(val):
+            val_str = str(val).strip()
+            if val_str in ['nan', 'None', '', 'NaT', 'غير محدد الملكية']:
+                return 'غير محدد الملكية'
+            if 'شركة' in val_str:
+                return 'ملك الشركة'
+            if 'غير' in val_str:
+                return 'ملك الغير'
+            return 'غير محدد الملكية'
+            
+        df['الملكية'] = df['الملكية'].apply(safe_get_owner)
+            
+        # 5. معالجة الهندسة
         if 'الهندسة' not in df.columns:
             df['الهندسة'] = 'هندسة غير محددة'
         else:
             df['الهندسة'] = df['الهندسة'].fillna('هندسة غير محددة').astype(str)
             
+        # 6. معالجة القدرة
         if 'القدرة' not in df.columns:
             df['القدرة'] = 0.0
             
@@ -162,7 +187,8 @@ def load_all_transformers():
                 
         return df
     except Exception as e:
-        print(f"Error loading Transformers_All: {e}")
+        # لو حصل أي مشكلة هيظهر إيرور أحمر صريح بدل ما يخفي البيانات
+        st.error(f"⚠️ حدث خطأ داخلي أثناء قراءة بيانات المحولات: {e}")
         return pd.DataFrame()
 
 # ==========================================
@@ -196,7 +222,6 @@ tab_home, tab_stations, tab_dist, tab_all_trans = st.tabs([
     "⚡ المحولات الشاملة"
 ])
 
-# تم تعديل هذه الدالة لمنع خطأ الـ float
 def get_columns_to_display(df, exclude_cols):
     keywords = ['كود', 'رقم', 'اسم', 'محول']
     id_columns = [col for col in df.columns if any(kw in str(col) for kw in keywords) and col not in exclude_cols]
