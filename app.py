@@ -110,34 +110,27 @@ COLOR_MAP = {
 # 2. دوال المعالجة والتحميل والتنسيق
 # ==========================================
 
-# 📌 دالة الجداول الديناميكية الجديدة (بحث + عرض مصغر)
 def display_dynamic_table(df, key_suffix):
     """تعرض الجدول بحجم صغير مع مربع بحث ديناميكي للفلترة"""
     if df.empty:
         st.info("لا توجد بيانات للعرض.")
         return
         
-    # مربع البحث الديناميكي
     search_term = st.text_input("🔍 بحث في الجدول (بالاسم، الرقم، الخ):", key=f"search_{key_suffix}")
     
-    # فلترة البيانات بناءً على البحث
     if search_term:
-        # البحث في جميع الأعمدة
         mask = df.astype(str).apply(lambda x: x.str.contains(search_term, case=False, na=False)).any(axis=1)
         filtered_df = df[mask]
     else:
         filtered_df = df
 
-    # عرض عدد النتائج
     st.caption(f"عدد النتائج المعروضة: **{len(filtered_df)}** صف")
 
     if filtered_df.empty:
         st.warning("لم يتم العثور على نتائج مطابقة للبحث.")
     else:
-        # توليد HTML للجدول
         html_table = filtered_df.to_html(index=False, classes="custom-table", escape=False)
         st.markdown(f'<div class="table-container">{html_table}</div>', unsafe_allow_html=True)
-
 
 def clean_sector_name(name):
     if pd.isna(name): return "قطاع غير محدد"
@@ -153,7 +146,7 @@ def metric_card(title, value, subtitle="", style_class=""):
     </div>
     """, unsafe_allow_html=True)
 
-# 📌 الدالة المعدلة لضبط الـ Sunburst
+# 📌 الدالة المعدلة لإظهار الكلام دائماً مع توجيهه بذكاء
 def render_safe_sunburst(df, path_cols, **kwargs):
     df_clean = df.copy()
     for col in path_cols:
@@ -164,16 +157,16 @@ def render_safe_sunburst(df, path_cols, **kwargs):
     try:
         fig = px.sunburst(df_clean, path=path_cols, **kwargs)
         
-        # 📌 التعديلات الجديدة لضبط النصوص ومنع التداخل
+        # 📌 التعديل لضمان عدم خروج النص وإظهاره دائماً
         fig.update_traces(
             textinfo='label', 
-            insidetextorientation='radial' # دوران النص ليتناسب مع شكل الشريحة الدائري
+            insidetextorientation='auto', 
+            textfont=dict(size=12)
         )
         
         fig.update_layout(
-            font=dict(family="Cairo, sans-serif", size=13),
-            uniformtext=dict(minsize=10, mode='hide'), # إخفاء النص في الشرائح الصغيرة جداً لمنع الزحمة
-            margin=dict(t=30, l=10, r=10, b=10) # ضبط الهوامش لإعطاء مساحة للرسمة
+            font=dict(family="Cairo, sans-serif"),
+            margin=dict(t=30, l=10, r=10, b=10) 
         )
         
         if 'height' in kwargs and kwargs['height'] <= 400:
@@ -356,7 +349,6 @@ with tab_home:
                 with st.expander("🔍 عرض تفاصيل النواقص في الملكية فقط"):
                     id_cols = get_columns_to_display(df_missing_own, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
                     display_cols = [col for col in (['القطاع', 'الهندسة'] + id_cols + ['الملكية']) if col in df_missing_own.columns]
-                    # 📌 استخدام الدالة الديناميكية للبحث
                     display_dynamic_table(df_missing_own[display_cols], "home_miss_own") 
 
         with u2: 
@@ -366,7 +358,6 @@ with tab_home:
                 with st.expander("🔍 عرض تفاصيل النواقص في نوع المبنى فقط"):
                     id_cols = get_columns_to_display(df_missing_type, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
                     display_cols = [col for col in (['القطاع', 'الهندسة'] + id_cols + ['النوع']) if col in df_missing_type.columns]
-                    # 📌 استخدام الدالة الديناميكية للبحث
                     display_dynamic_table(df_missing_type[display_cols], "home_miss_type") 
 
     st.markdown("---")
@@ -438,7 +429,6 @@ with tab_stations:
             st.plotly_chart(fig_st_bar, use_container_width=True)
         
         st.markdown("### 📑 بيانات المحطات التفصيلية")
-        # 📌 استخدام الدالة الديناميكية للبحث
         display_dynamic_table(df_st, "stations") 
 
 with tab_dist:
@@ -453,7 +443,6 @@ with tab_dist:
             st.plotly_chart(fig_d_bar, use_container_width=True)
             
         st.markdown("### 📑 ملخص أعداد الموزعات بالقطاعات")
-        # 📌 استخدام الدالة الديناميكية للبحث
         display_dynamic_table(df_dst_summ, "distributors_summ") 
 
 # -----------------------------------------------------------------------------
@@ -500,7 +489,6 @@ with tab_all_trans:
                     with st.expander(f"🔍 عرض تفاصيل النواقص في الملكية بـ {selected_sec}"):
                         id_cols = get_columns_to_display(df_view_miss_own, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
                         display_cols = [col for col in (['الهندسة'] + id_cols + ['الملكية']) if col in df_view_miss_own.columns]
-                        # 📌 استخدام الدالة الديناميكية للبحث
                         display_dynamic_table(df_view_miss_own[display_cols], "tab4_miss_own") 
             
             with c_v6: 
@@ -510,7 +498,6 @@ with tab_all_trans:
                     with st.expander(f"🔍 عرض تفاصيل النواقص في نوع المبنى بـ {selected_sec}"):
                         id_cols = get_columns_to_display(df_view_miss_type, ['القطاع', 'الهندسة', 'الملكية', 'النوع', 'القدرة'])
                         display_cols = [col for col in (['الهندسة'] + id_cols + ['النوع']) if col in df_view_miss_type.columns]
-                        # 📌 استخدام الدالة الديناميكية للبحث
                         display_dynamic_table(df_view_miss_type[display_cols], "tab4_miss_type") 
             
             st.markdown("---")
@@ -521,7 +508,6 @@ with tab_all_trans:
                 trans_grouped = df_view.groupby(['الهندسة', 'الملكية', 'النوع']).size().reset_index(name='العدد')
                 if not trans_grouped.empty:
                     pivot_trans = trans_grouped.pivot_table(index='الهندسة', columns=['الملكية', 'النوع'], values='العدد', fill_value=0).astype(int).reset_index()
-                    # 📌 استخدام الدالة الديناميكية للبحث
                     display_dynamic_table(pivot_trans, "tab4_pivot") 
                 
             with col_charts:
