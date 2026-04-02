@@ -273,7 +273,7 @@ def get_columns_to_display(df, exclude_cols):
 # 3. واجهة التطبيق
 # ==========================================
 
-st.title("نظم المعلومات الجغرافية و الفنيه- Dashboard (GIS)")
+st.title("نظم المعلومات الجغرافية و الفنية - Dashboard (GIS)")
 
 df_st = load_stations()
 df_dst, df_dst_summ = load_distributors()
@@ -339,7 +339,7 @@ with tab_home:
             with p2: metric_card("غرف", len(df_pr[df_pr['النوع']=='غرفة']), style_class="card-private")
             with p3: metric_card("معلقات", len(df_pr[df_pr['النوع']=='معلق']), style_class="card-private")
 
-        st.markdown("#### ⚠️ بيانات غير محددة (نواقص الإكسيل)")
+        st.markdown("####  بيانات غير محددة (نواقص الإكسيل)")
         u1, u2 = st.columns(2)
         
         with u1: 
@@ -450,7 +450,7 @@ with tab_dist:
 # -----------------------------------------------------------------------------
 with tab_all_trans:
     if not df_trans.empty:
-        st.markdown("### 🎯 استعلام ديناميكي لبيانات القطاعات")
+        st.markdown("###  استعلام ديناميكي لبيانات القطاعات")
         
         all_sectors_list = sorted([s for s in df_trans['القطاع'].unique() if s != "قطاع غير محدد" and str(s) != 'nan'])
         selected_sec = st.selectbox("📌 اختر القطاع لعرض تفاصيله:", ["الكل"] + all_sectors_list)
