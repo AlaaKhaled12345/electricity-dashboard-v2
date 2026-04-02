@@ -153,6 +153,7 @@ def metric_card(title, value, subtitle="", style_class=""):
     </div>
     """, unsafe_allow_html=True)
 
+# 📌 الدالة المعدلة لضبط الـ Sunburst
 def render_safe_sunburst(df, path_cols, **kwargs):
     df_clean = df.copy()
     for col in path_cols:
@@ -162,9 +163,22 @@ def render_safe_sunburst(df, path_cols, **kwargs):
         
     try:
         fig = px.sunburst(df_clean, path=path_cols, **kwargs)
-        fig.update_layout(font=dict(family="Cairo, sans-serif", size=14))
+        
+        # 📌 التعديلات الجديدة لضبط النصوص ومنع التداخل
+        fig.update_traces(
+            textinfo='label', 
+            insidetextorientation='radial' # دوران النص ليتناسب مع شكل الشريحة الدائري
+        )
+        
+        fig.update_layout(
+            font=dict(family="Cairo, sans-serif", size=13),
+            uniformtext=dict(minsize=10, mode='hide'), # إخفاء النص في الشرائح الصغيرة جداً لمنع الزحمة
+            margin=dict(t=30, l=10, r=10, b=10) # ضبط الهوامش لإعطاء مساحة للرسمة
+        )
+        
         if 'height' in kwargs and kwargs['height'] <= 400:
-            fig.update_layout(margin=dict(t=0, l=0, r=0, b=0))
+            fig.update_layout(margin=dict(t=10, l=0, r=0, b=0))
+            
         st.plotly_chart(fig, use_container_width=True)
     except Exception as e:
         st.warning("⚠️ لا يمكن عرض المخطط الهرمي لهذه البيانات المحددة لوجود نقص في بعض التصنيفات.")
