@@ -474,7 +474,7 @@ with tab_all_trans:
             with c_v3: metric_card("الموزعات", num_distributors, "موزع بالقطاع")
             with c_v4: 
                 metric_card("إجمالي المحولات", num_total_trans, "محول بالقطاع", "card-total")
-                with st.expander("👇 اضغط لعرض تفاصيل ملكية المحولات"):
+                with st.expander("👇  لعرض تفاصيل ملكية المحولات"):
                     col_comp, col_priv = st.columns(2)
                     with col_comp: metric_card("ملك الشركة", num_company, "", "card-company")
                     with col_priv: metric_card("ملك الغير", num_private, "", "card-private")
