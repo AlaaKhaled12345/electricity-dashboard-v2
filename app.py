@@ -273,7 +273,7 @@ def get_columns_to_display(df, exclude_cols):
 # 3. واجهة التطبيق
 # ==========================================
 st.sidebar.image("logo.jpg", use_container_width=True)
-st.sidebar.markdown("### ⚡ خيارات الداشبورد")
+# st.sidebar.markdown("### ⚡ خيارات الداشبورد")
 # (تقدري بعدين تحطي أي فلاتر أو أزرار هنا في الـ sidebar)
 
 st.title("نظم المعلومات الجغرافية و الفنية - Dashboard (GIS)")
