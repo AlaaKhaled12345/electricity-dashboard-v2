@@ -278,7 +278,7 @@ col_logo, col_title = st.columns([1, 4])
 
 with col_logo:
     # هنا بنحط اسم الصورة، وبنحدد عرضها عشان متطلعش كبيرة أوي
-    st.image("logo.png", width=120) 
+    st.image("logo.jpg", width=120) 
 
 with col_title:
     # هنا بنحط العنوان بتاعنا عادي جداً
