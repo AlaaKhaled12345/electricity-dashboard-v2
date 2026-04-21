@@ -7,6 +7,7 @@ import os
 # 1. إعداد الصفحة والتصميم (CSS)
 # ==========================================
 st.set_page_config(layout="wide", page_title="Dashboard Electricity", page_icon="⚡")
+st.logo("logo.jpg")
 
 st.markdown("""
 <style>
@@ -272,17 +273,7 @@ def get_columns_to_display(df, exclude_cols):
 # ==========================================
 # 3. واجهة التطبيق
 # ==========================================
-
-# بنقسم الشاشة لعمودين: عمود صغير للوجو (بنسبة 1) وعمود كبير للعنوان (بنسبة 4)
-col_logo, col_title = st.columns([1, 4])
-
-with col_logo:
-    # هنا بنحط اسم الصورة، وبنحدد عرضها عشان متطلعش كبيرة أوي
-    st.image("logo.jpg", width=120) 
-
-with col_title:
-    # هنا بنحط العنوان بتاعنا عادي جداً
-    st.title("نظم المعلومات الجغرافية و الفنية - Dashboard (GIS)")
+st.title("نظم المعلومات الجغرافية و الفنية - Dashboard (GIS)")
 
 df_st = load_stations()
 df_dst, df_dst_summ = load_distributors()
