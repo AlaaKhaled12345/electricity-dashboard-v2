@@ -276,12 +276,12 @@ def get_columns_to_display(df, exclude_cols):
 # ==========================================
 # 3. واجهة التطبيق
 # ==========================================
-st.sidebar.image("logo.jpg", use_container_width=True)
+st.sidebar.image("logo.jpeg", use_container_width=True)
 st.title("نظم المعلومات الجغرافية و الفنية - Dashboard (GIS)")
 # col_logo, col_title = st.columns([1, 4], vertical_alignment="center")
 
 # with col_logo:
-#     st.image("logo.jpg", width=180) 
+#     st.image("logo.jpeg", width=180) 
 
 # with col_title:
 #     st.title("نظم المعلومات الجغرافية و الفنية - Dashboard (GIS)")
