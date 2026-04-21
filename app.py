@@ -277,7 +277,7 @@ def get_columns_to_display(df, exclude_cols):
 col_logo, col_title = st.columns([1, 4])
 
 with col_logo:
-    st.image("logo.jpg", width=120) 
+    st.image("logo.jpg", width=180) 
 
 with col_title:
     st.title("نظم المعلومات الجغرافية و الفنية - Dashboard (GIS)")
