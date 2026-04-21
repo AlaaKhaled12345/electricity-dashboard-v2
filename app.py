@@ -28,6 +28,10 @@ st.markdown("""
     h3 { font-size: 1.4rem !important; border-bottom: 2px solid #eee; padding-bottom: 8px; margin-bottom: 15px; }
     h4 { font-size: 1.2rem !important; }
 
+    /* التعديل لتقليل المسافة بين العنوان والتابات */
+    .stTabs { margin-top: -30px !important; }
+    div.block-container { padding-top: 2rem !important; }
+
     .stTabs [data-baseweb="tab-list"] { gap: 10px; background-color: #ffffff; padding: 10px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .stTabs [data-baseweb="tab"] { 
         height: 55px; 
@@ -274,7 +278,7 @@ def get_columns_to_display(df, exclude_cols):
 # ==========================================
 # st.sidebar.image("logo.jpg", use_container_width=True)
 # st.title("نظم المعلومات الجغرافية و الفنية - Dashboard (GIS)")
-col_logo, col_title = st.columns([1, 4])
+col_logo, col_title = st.columns([1, 4], vertical_alignment="center")
 
 with col_logo:
     st.image("logo.jpg", width=180) 
