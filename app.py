@@ -272,11 +272,16 @@ def get_columns_to_display(df, exclude_cols):
 # ==========================================
 # 3. واجهة التطبيق
 # ==========================================
-st.sidebar.image("logo.jpg", use_container_width=True)
-# st.sidebar.markdown("### ⚡ خيارات الداشبورد")
-# (تقدري بعدين تحطي أي فلاتر أو أزرار هنا في الـ sidebar)
+# st.sidebar.image("logo.jpg", use_container_width=True)
+col_logo, col_title = st.columns([1, 4])
 
-st.title("نظم المعلومات الجغرافية و الفنية - Dashboard (GIS)")
+with col_logo:
+    st.image("logo.jpg", width=120) 
+
+with col_title:
+    st.title("نظم المعلومات الجغرافية و الفنية - Dashboard (GIS)")
+
+# st.title("نظم المعلومات الجغرافية و الفنية - Dashboard (GIS)")
 
 df_st = load_stations()
 df_dst, df_dst_summ = load_distributors()
