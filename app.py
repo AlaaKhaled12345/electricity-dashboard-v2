@@ -42,7 +42,7 @@ st.markdown("""
     .stTabs [aria-selected="true"] { background-color: #2E86C1 !important; color: white !important; font-weight: 900 !important; border: none; }
 
     .metric-card { background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%); border-right: 6px solid #2E86C1; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; margin-bottom: 20px; transition: transform 0.3s ease; }
-    .metric-title { color: #4b5563; font-size: 1.6rem; margin-bottom: 8px; font-weight: 800; }
+    .metric-title { color: #1A5276; font-size: 1.6rem; margin-bottom: 8px; font-weight: 800; }
     .metric-value { color: #111827; font-size: 2.4rem; font-weight: 900; line-height: 1.2; }
     .metric-sub { font-size: 1rem; color: #6b7280; font-weight: 700; }
 
