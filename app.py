@@ -278,7 +278,7 @@ def get_columns_to_display(df, exclude_cols):
 # ==========================================
 # st.sidebar.image("logo.jpeg", use_container_width=True)
 # st.title("نظم المعلومات الجغرافية و الفنية - Dashboard (GIS)")
-col_logo, col_title = st.columns([1, 4], vertical_alignment="center")
+col_logo, col_title = st.columns([1, 4])
 
 with col_logo:
     st.image("logo.jpeg", width=180) 
