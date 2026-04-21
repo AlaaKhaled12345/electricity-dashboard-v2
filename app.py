@@ -7,7 +7,6 @@ import os
 # 1. إعداد الصفحة والتصميم (CSS)
 # ==========================================
 st.set_page_config(layout="wide", page_title="Dashboard Electricity", page_icon="⚡")
-st.logo("logo.jpg")
 
 st.markdown("""
 <style>
@@ -273,6 +272,10 @@ def get_columns_to_display(df, exclude_cols):
 # ==========================================
 # 3. واجهة التطبيق
 # ==========================================
+st.sidebar.image("logo.jpg", use_container_width=True)
+st.sidebar.markdown("### ⚡ خيارات الداشبورد")
+# (تقدري بعدين تحطي أي فلاتر أو أزرار هنا في الـ sidebar)
+
 st.title("نظم المعلومات الجغرافية و الفنية - Dashboard (GIS)")
 
 df_st = load_stations()
