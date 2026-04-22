@@ -98,6 +98,26 @@ st.markdown("""
     
     [data-testid="stSelectbox"] label p { font-size: 1.4rem !important; font-weight: 900 !important; color: #1A5276 !important; }
     div[data-baseweb="select"] > div { font-size: 1.2rem !important; font-weight: 800 !important; color: #111 !important; }
+
+    /* ========================================= */
+    /* 📌 تثبيت شريط التابات (Tabs) في أعلى الشاشة */
+    /* ========================================= */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        height: 0px !important;
+    }
+
+    div[data-testid="stTabs"] > div[data-baseweb="tab-list"] {
+        position: sticky !important;
+        top: 0px !important;
+        z-index: 9999 !important;
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(5px) !important;
+        box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.08) !important;
+        padding: 10px 15px !important;
+        border-radius: 0px 0px 15px 15px !important;
+        margin-top: -10px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
